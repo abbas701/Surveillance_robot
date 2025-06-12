@@ -1,0 +1,157 @@
+#root {
+  width: 100vw;
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  overflow: hidden;
+  text-align: center;
+}
+
+:root {
+  --bg-color-dark: #0a192f;
+  --text-color-dark: #f0f4f8;
+  --bg-color-light: #ffffff;
+  --text-color-light: #222;
+}
+
+body.dark {
+  background: var(--bg-color-dark);
+  color: var(--text-color-dark);
+}
+
+body.light {
+  background: var(--bg-color-light);
+  color: var(--text-color-light);
+}
+
+img {
+  height: 24px;
+  width: 24px;
+}
+
+body.dark img {
+  filter: invert(1);
+}
+
+body.light img {
+  filter: none;
+}
+
+.App {
+  min-height: 100vh;
+  width: 100vw;
+  box-sizing: border-box;
+}
+
+.dashboard-layout {
+  display: grid;
+  grid-template-columns: 0.1fr 1fr;
+  height: 100vh;
+  transition: grid-template-columns 0.2s;
+}
+
+.dashboard-layout.sidebar-collapsed {
+  grid-template-columns: 56px 1fr;
+}
+
+.sidebar-area {
+  grid-column: 1 / 2;
+  background: transparent;
+  border-right: 1px solid #e0e0e0;
+  padding: 0;
+}
+
+.main-area {
+  grid-column: 2 / 3;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.topbar-area {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px 8px 24px;
+  border-bottom: 1px solid #e0e0e0;
+  background: inherit;
+}
+
+.dashboard-title h1 {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.dashboard-title span {
+  font-size: 1rem;
+  color: #888;
+}
+
+.vital-stats {
+  display: flex;
+  gap: 40px;
+  align-items: center;
+}
+
+.user-info {
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.widgets-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 1.5fr 1.2fr;
+  grid-template-rows: 1.2fr 1.2fr 1.2fr 1fr;
+  gap: 5px;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.widget-barChart {
+  grid-column: 1/2;
+  grid-row: 1 / 3;
+}
+
+.widget-gps {
+  grid-column: 2 / 3;
+  grid-row: 1 / 2;
+}
+
+.widget-pieChart {
+  grid-column: 3 / 4;
+  grid-row: 1 / 2;
+}
+
+.widget-video {
+  grid-column: 2 / 3;
+  grid-row: 2 / 3;
+}
+
+.widget-lineGraph {
+  grid-column: 2 / 3;
+  grid-row: 3 / 4;
+}
+
+.widget-cameraControls {
+  grid-column: 1 / 2;
+  grid-row: 3 / 4;
+}
+
+.widget-locomotiveControls {
+  grid-column: 3 / 4;
+  grid-row: 2 / 4;
+}
+
+.widget {
+  background: transparent;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(10, 25, 47, 0.08);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
