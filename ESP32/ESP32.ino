@@ -21,32 +21,33 @@ const char *sensorTopic = "robot/sensors";
 const char *commandTopic = "robot/commands";
 
 // Timing
-const unsigned long interval = 1000; // 1 second
+const unsigned long interval = 1000;  // 1 second
 unsigned long lastPublish = 0;
 
 // Motor Encoder
-volatile long encoderCount = 0;
+volatile long encoderCount1 = 0;
+volatile long encoderCount2 = 0;
 const int encoderPin1A = 35;
 const int encoderPin1B = 32;
-const int encoderPin2B = 33;
+const int encoderPin2A = 33;
 const int encoderPin2B = 25;
+long lastCount1 = 0;
+long lastCount2 = 0;
 unsigned long lastTime = 0;
-long lastCount = 0;
 
 // BMP280 sensor
-Adafruit_BMP280 bmp; // I2C interface
+Adafruit_BMP280 bmp;  // I2C interface
 
-#define ENA 19 // Left wheel speed
-#define IN1 18 // Left wheel forward
-#define IN2 5  // Left wheel reverse
-#define IN3 15 // Right wheel reverse
-#define IN4 2  // Right wheel forward
-#define ENB 4  // Right wheel speed
+#define ENA 19  // Left wheel speed
+#define IN1 18  // Left wheel forward
+#define IN2 5   // Left wheel reverse
+#define IN3 15  // Right wheel reverse
+#define IN4 2   // Right wheel forward
+#define ENB 4   // Right wheel speed
 #define HEADLIGHT_PIN 34
 #define HORN_PIN 23
 
-void forward(int speedL, int speedR)
-{
+void forward(int speedL, int speedR) {
   digitalWrite(IN1, HIGH);
   digitalWrite(IN2, LOW);
   digitalWrite(IN3, HIGH);
@@ -55,8 +56,7 @@ void forward(int speedL, int speedR)
   analogWrite(ENB, speedR);
 }
 
-void backward(int speedL, int speedR)
-{
+void backward(int speedL, int speedR) {
   digitalWrite(IN1, LOW);
   digitalWrite(IN2, HIGH);
   digitalWrite(IN3, LOW);
@@ -65,8 +65,7 @@ void backward(int speedL, int speedR)
   analogWrite(ENB, speedR);
 }
 
-void turnLeft(int speedL, int speedR)
-{
+void turnLeft(int speedL, int speedR) {
   digitalWrite(IN1, LOW);
   digitalWrite(IN2, LOW);
   digitalWrite(IN3, HIGH);
@@ -75,8 +74,7 @@ void turnLeft(int speedL, int speedR)
   analogWrite(ENB, speedR);
 }
 
-void turnRight(int speedL, int speedR)
-{
+void turnRight(int speedL, int speedR) {
   digitalWrite(IN1, HIGH);
   digitalWrite(IN2, LOW);
   digitalWrite(IN3, LOW);
@@ -85,8 +83,7 @@ void turnRight(int speedL, int speedR)
   analogWrite(ENB, speedR);
 }
 
-void rotateLeft(int speedL, int speedR)
-{
+void rotateLeft(int speedL, int speedR) {
   digitalWrite(IN1, LOW);
   digitalWrite(IN2, HIGH);
   digitalWrite(IN3, HIGH);
@@ -95,8 +92,7 @@ void rotateLeft(int speedL, int speedR)
   analogWrite(ENB, speedR);
 }
 
-void rotateRight(int speedL, int speedR)
-{
+void rotateRight(int speedL, int speedR) {
   digitalWrite(IN1, HIGH);
   digitalWrite(IN2, LOW);
   digitalWrite(IN3, LOW);
@@ -105,8 +101,7 @@ void rotateRight(int speedL, int speedR)
   analogWrite(ENB, speedR);
 }
 
-void stop()
-{
+void stop() {
   digitalWrite(IN1, LOW);
   digitalWrite(IN2, LOW);
   digitalWrite(IN3, LOW);
@@ -115,8 +110,7 @@ void stop()
   analogWrite(ENB, 0);
 }
 
-void setup()
-{
+void setup() {
   pinMode(IN1, OUTPUT);
   pinMode(IN2, OUTPUT);
   pinMode(IN3, OUTPUT);
@@ -124,9 +118,13 @@ void setup()
   pinMode(ENA, OUTPUT);
   pinMode(ENB, OUTPUT);
 
-  pinMode(encoderPinA, INPUT);
-  pinMode(encoderPinB, INPUT);
-  attachInterrupt(digitalPinToInterrupt(encoderPinA), updateEncoder, CHANGE);
+  pinMode(encoderPin1A, INPUT);
+  pinMode(encoderPin1B, INPUT);
+  attachInterrupt(digitalPinToInterrupt(encoderPin1A), updateEncoder1, CHANGE);
+
+  pinMode(encoderPin2A, INPUT);
+  pinMode(encoderPin2B, INPUT);
+  attachInterrupt(digitalPinToInterrupt(encoderPin2A), updateEncoder2, CHANGE);
 
   Serial.begin(9600);
   delay(1000);
@@ -134,8 +132,7 @@ void setup()
 
   Wire.begin();
 
-  if (!bmp.begin(0x77))
-  {
+  if (!bmp.begin(0x77)) {
     Serial.println(F("Could not find BMP280 sensor, check wiring!"));
     while (1)
       ;
@@ -149,8 +146,7 @@ void setup()
 
   WiFi.begin(ssid, password);
   Serial.print("Connecting to Wi-Fi");
-  while (WiFi.status() != WL_CONNECTED)
-  {
+  while (WiFi.status() != WL_CONNECTED) {
     delay(500);
     Serial.print(".");
   }
@@ -161,18 +157,13 @@ void setup()
   reconnect();
 }
 
-void reconnect()
-{
-  while (!client.connected())
-  {
+void reconnect() {
+  while (!client.connected()) {
     Serial.print("Connecting to MQTT broker...");
-    if (client.connect(clientId, mqttUser, mqttPassword))
-    {
+    if (client.connect(clientId, mqttUser, mqttPassword)) {
       Serial.println("Connected");
       client.subscribe(commandTopic);
-    }
-    else
-    {
+    } else {
       Serial.print("Failed, rc=");
       Serial.print(client.state());
       Serial.println(" Retrying in 5 seconds");
@@ -181,11 +172,9 @@ void reconnect()
   }
 }
 
-void callback(char *topic, byte *payload, unsigned int length)
-{
+void callback(char *topic, byte *payload, unsigned int length) {
   String message;
-  for (unsigned int i = 0; i < length; i++)
-  {
+  for (unsigned int i = 0; i < length; i++) {
     message += (char)payload[i];
   }
   Serial.print("Received command: ");
@@ -193,8 +182,7 @@ void callback(char *topic, byte *payload, unsigned int length)
 
   StaticJsonDocument<200> doc;
   DeserializationError error = deserializeJson(doc, message);
-  if (error)
-  {
+  if (error) {
     Serial.print("deserializeJson() failed: ");
     Serial.println(error.c_str());
     return;
@@ -205,16 +193,14 @@ void callback(char *topic, byte *payload, unsigned int length)
   int speed = doc["speed"] | 0;
   const char *mode = doc["mode"] | "manual";
 
-  if (strcmp(action, "move") == 0)
-  {
+  if (strcmp(action, "move") == 0) {
     Serial.print("Move: ");
     Serial.print(value);
     Serial.print(", Mode: ");
     Serial.println(mode);
     int adjustedSpeed = speed;
-    if (strcmp(mode, "manual-precise") == 0)
-    {
-      adjustedSpeed = round(speed / 100 * 255); // Slower for precision
+    if (strcmp(mode, "manual-precise") == 0) {
+      adjustedSpeed = round(speed / 100 * 255);  // Slower for precision
     }
     if (strcmp(value, "forward") == 0)
       forward(adjustedSpeed, adjustedSpeed);
@@ -230,42 +216,31 @@ void callback(char *topic, byte *payload, unsigned int length)
       rotateRight(adjustedSpeed, adjustedSpeed);
     else if (strcmp(value, "stop") == 0)
       stop();
-  }
-  else if (strcmp(action, "headlights") == 0)
-  {
+  } else if (strcmp(action, "headlights") == 0) {
     Serial.print("Headlights: ");
     Serial.println(value);
     digitalWrite(HEADLIGHT_PIN, strcmp(value, "on") == 0 ? HIGH : LOW);
-  }
-  else if (strcmp(action, "horn") == 0)
-  {
+  } else if (strcmp(action, "horn") == 0) {
     Serial.print("Horn: ");
     Serial.println(value);
     digitalWrite(HORN_PIN, strcmp(value, "on") == 0 ? HIGH : LOW);
-  }
-  else if (strcmp(action, "mode") == 0)
-  {
+  } else if (strcmp(action, "mode") == 0) {
     Serial.print("Mode changed: ");
     Serial.println(value);
-  }
-  else if (strcmp(action, "screen") == 0)
-  {
+  } else if (strcmp(action, "screen") == 0) {
     Serial.print("Screen: ");
     Serial.println(value);
   }
 }
 
-void loop()
-{
-  if (!client.connected())
-  {
+void loop() {
+  if (!client.connected()) {
     reconnect();
   }
   client.loop();
 
   unsigned long now = millis();
-  if (now - lastPublish >= interval)
-  {
+  if (now - lastPublish >= interval) {
     lastPublish = now;
 
     float temperature = bmp.readTemperature();
@@ -280,30 +255,40 @@ void loop()
     char payload[200];
     serializeJson(doc, payload);
 
-    if (client.publish(sensorTopic, payload))
-    {
+    if (client.publish(sensorTopic, payload)) {
       Serial.println("Published: " + String(payload));
-    }
-    else
-    {
+    } else {
       Serial.println("Publish failed");
     }
 
     // Motor Encoder
     unsigned long now = millis();
-    if (now - lastTime >= 1000)
-    { // Every 1 second
-      long countNow = encoderCount;
-      long countDiff = countNow - lastCount;
+    if (now - lastTime >= 1000) {
+      long countNow1 = encoderCount1;
+      long countDiff1 = countNow1 - lastCount1;
+      float revs1 = countDiff1 / 6400.0;  // Update if gear ratio different
+      float rpm1 = revs1 * 60.0;
 
-      float revs = countDiff / 6400.0; // revolutions
-      float rpm = revs * 60.0;
+      long countNow2 = encoderCount2;
+      long countDiff2 = countNow2 - lastCount2;
+      float revs2 = countDiff2 / 6400.0;
+      float rpm2 = revs2 * 60.0;
+
+      Serial.println("=== Motor 1 ===");
       Serial.print("Pulses/sec: ");
-      Serial.println(countDiff);
+      Serial.println(countDiff1);
       Serial.print("RPM: ");
-      Serial.println(rpm, 3); // Print 3 decimal places
+      Serial.println(rpm1, 2);
 
-      lastCount = countNow;
+      Serial.println("=== Motor 2 ===");
+      Serial.print("Pulses/sec: ");
+      Serial.println(countDiff2);
+      Serial.print("RPM: ");
+      Serial.println(rpm2, 2);
+      Serial.println();
+
+      lastCount1 = countNow1;
+      lastCount2 = countNow2;
       lastTime = now;
     }
     // Serial.print("Temperature = ");
@@ -317,17 +302,20 @@ void loop()
     // Serial.println(" m");
   }
 }
-void updateEncoder()
-{
-  bool A = digitalRead(encoderPinA);
-  bool B = digitalRead(encoderPinB);
-
+void updateEncoder1() {
+  bool A = digitalRead(encoderPin1A);
+  bool B = digitalRead(encoderPin1B);
   if (A == B)
-  {
-    encoderCount++;
-  }
+    encoderCount1++;
   else
-  {
-    encoderCount--;
-  }
+    encoderCount1--;
+}
+
+void updateEncoder2() {
+  bool A = digitalRead(encoderPin2A);
+  bool B = digitalRead(encoderPin2B);
+  if (A == B)
+    encoderCount2++;
+  else
+    encoderCount2--;
 }

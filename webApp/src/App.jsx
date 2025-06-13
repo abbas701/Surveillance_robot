@@ -19,13 +19,14 @@ function App() {
   if (loading) return <div>Loading...</div>;
 
   return (
-    <Router>
-      <Routes>
-        <Route path="/login" element={loggedIn ? <Navigate to="/dashboard" /> : <Login setLoggedIn={setLoggedIn} />} />
-        <Route path="/dashboard" element={loggedIn ? <Dashboard setLoggedIn={setLoggedIn} /> : <Navigate to="/login" />} />
-        <Route path="/" element={<Navigate to={loggedIn ? "/dashboard" : "/login"} />} />
-      </Routes>
-    </Router>
+    <Dashboard/>
+    // <Router>
+    //   <Routes>
+    //     <Route path="/login" element={loggedIn ? <Navigate to="/dashboard" /> : <Login setLoggedIn={setLoggedIn} />} />
+    //     <Route path="/dashboard" element={loggedIn ? <Dashboard setLoggedIn={setLoggedIn} /> : <Navigate to="/login" />} />
+    //     <Route path="/" element={<Navigate to={loggedIn ? "/dashboard" : "/login"} />} />
+    //   </Routes>
+    // </Router>
   );
 }
 

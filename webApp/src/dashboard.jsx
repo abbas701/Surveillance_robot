@@ -31,7 +31,7 @@ function Dashboard({ setLoggedIn }) {
       const response = await axios.get('http://localhost:3000/api/data', {
         withCredentials: true,
       });
-      console.log('Fetched data:', response.data);
+      // console.log('Fetched data:', response.data);
       setSensorData(response.data);
       setError(null);
     } catch (err) {
@@ -63,7 +63,7 @@ function Dashboard({ setLoggedIn }) {
     }
   };
 
-  const navigate = useNavigate();
+  // const navigate = useNavigate();
   const handleLogout = async () => {
     try {
       await axios.post('http://localhost:3000/logout', {}, { withCredentials: true });

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import Speedometer from './speedometer';
 import LocomotionMode from './locomotionMode';
+import JoystickControl from "./joystick";
 
 function LocomotiveControls({ onButtonPress }) {
   const [mode, setMode] = useState("manual-precise");
@@ -15,8 +16,8 @@ function LocomotiveControls({ onButtonPress }) {
   };
 
   const returnToStop = () => {
-    setDirection("S");
-    onButtonPress({ action: "move", value: "stop", speed: 0, mode });
+    // setDirection("S");
+    // onButtonPress({ action: "move", value: "stop", speed: 0, mode });
   };
 
   const toggleHeadlights = () => {
@@ -60,11 +61,29 @@ function LocomotiveControls({ onButtonPress }) {
           }
         }}
       />
-      <div className="control-group">
+
+<JoystickControl
+  onMove={(data) => {
+    // Send data to backend (via WebSocket or HTTP)
+    console.log("Moving", data);
+  }}
+  onEnd={() => {
+    // Send stop command to backend
+    console.log("Stopped");
+  }}
+/>
+
+      {/* <div className="control-group">
         <img
           src="src/assets/Controls/up.svg"
           alt="F"
           onMouseDown={() => handleDirectionChange("forward")}
+          onMouseUp={returnToStop}
+        />
+        <img
+          src="src/assets/Controls/stop.svg"
+          alt="S"
+          onMouseDown={() => handleDirectionChange("stop")}
           onMouseUp={returnToStop}
         />
         <img
@@ -109,7 +128,7 @@ function LocomotiveControls({ onButtonPress }) {
           style={{ opacity: hornOn ? 1 : 0.5 }}
           onClick={toggleHorn}
         />
-      </div>
+      </div> */}
     </div>
   );
 }
