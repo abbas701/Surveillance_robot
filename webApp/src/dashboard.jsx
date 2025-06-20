@@ -13,6 +13,7 @@ import CameraControls from './cameraControls';
 import ThemeWidget from './themeWidget';
 import VideoStream from './videoStream';
 import GPSMap from './gpsMap';
+import CalibrationControls from './CalibrationControls';
 import axios from 'axios';
 
 function Dashboard({ setLoggedIn }) {
@@ -20,18 +21,32 @@ function Dashboard({ setLoggedIn }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [sensorData, setSensorData] = useState(null);
   const [error, setError] = useState(null);
+  const [robotStatus, setRobotStatus] = useState('offline'); // Track robot status
 
   useEffect(() => {
     document.body.classList.remove("light", "dark");
     document.body.classList.add(theme);
   }, [theme]);
-
+  const checkRobotStatus = async () => {
+    try {
+      const response = await axios.get('http://localhost:3000/api/status', {
+        withCredentials: true,
+      });
+      setRobotStatus(response.data.status);
+      setError(null);
+    } catch (err) {
+      console.error('Status check error:', err);
+      setRobotStatus('offline');
+      setError('Failed to check robot status');
+    }
+  };
   const fetchData = async () => {
+    if (robotStatus !== 'online') return; // Skip fetching if robot is offline
     try {
       const response = await axios.get('http://localhost:3000/api/data', {
         withCredentials: true,
       });
-      // console.log('Fetched data:', response.data);
+      console.log('Fetched data:', response.data);
       setSensorData(response.data);
       setError(null);
     } catch (err) {
@@ -40,26 +55,54 @@ function Dashboard({ setLoggedIn }) {
     }
   };
 
+  const fetchCalibrationFeedback = async () => {
+    try {
+      const response = await axios.get('http://localhost:3000/api/calibration', {
+        withCredentials: true,
+      });
+      console.log(response.data)
+      // setCalibrationFeedback(response.data);
+    } catch (err) {
+      console.error('Calibration feedback error:', err);
+      setError('Failed to fetch calibration feedback');
+    }
+  };
+
+  useEffect(() => {
+    checkRobotStatus(); // Initial status check
+    const statusInterval = setInterval(checkRobotStatus, 5000); // Check status every 5 seconds
+    const dataInterval = setInterval(fetchData, 1000); // Fetch data every 1 second if online
+    return () => {
+      clearInterval(statusInterval);
+      clearInterval(dataInterval);
+    };
+  }, [robotStatus]);
   useEffect(() => {
     console.log('Sensor data updated:', sensorData);
   }, [sensorData]);
 
-  useEffect(() => {
-    fetchData();
-    const interval = setInterval(fetchData, 1000); // Match 1-second publish
-    return () => clearInterval(interval);
-  }, []);
-
-  const sendCommand = async ({ action, value, speed, mode }) => {
+  const sendCommand = async ({ action, speed, angle, mode }) => {
+    // if(speed==0){value="stop"}
     try {
       const response = await axios.post(
         'http://localhost:3000/api/command',
-        { action, value, speed, mode },
+        { action, speed, angle, mode },
         { withCredentials: true }
       );
-      console.log('Command sent:', response.data);
+      // console.log('Command sent:', { action, value, speed, mode });
     } catch (err) {
       console.error('Command error:', err.response?.status, err.message);
+    }
+  };
+
+  const sendCalibrationCommand = async (quantity) => {
+    try {
+      await axios.post('http://localhost:3000/api/calibrate', { quantity }, { withCredentials: true });
+      console.log(`Calibration command sent: ${quantity}`);
+      fetchCalibrationFeedback(); // Fetch feedback immediately
+    } catch (err) {
+      console.error('Failed to send calibration command:', err);
+      setError(`Failed to send calibration command: ${quantity}`);
     }
   };
 
@@ -92,49 +135,48 @@ function Dashboard({ setLoggedIn }) {
               <h1>Dashboard</h1>
               <span>Welcome!</span>
             </div>
-            <div className="vital-stats">
-              {error && <p style={{ color: 'red' }}>{error}</p>}
-              {!sensorData || !sensorData.temperature ? (
-                <p>No data available</p>
-              ) : (
-                <>
-                  <SensorWidget
-                    sensorData={{
-                      type: "Timestamp",
-                      value: sensorData.timestamp ? new Date(sensorData.timestamp).toLocaleString() : 'N/A',
-                      unit: "",
-                    }}
-                  />
-                  <SensorWidget sensorData={{ type: "Voltage", value: "23", unit: "V" }} />
-                  <SensorWidget sensorData={{ type: "Current", value: "250", unit: "mA" }} />
-                  <SensorWidget sensorData={{ type: "Inclination", value: "23", unit: "°" }} />
-                  <SensorWidget
-                    sensorData={{
-                      type: "Temperature",
-                      value: sensorData.temperature?.toFixed(2) || 'N/A',
-                      unit: "°C",
-                    }}
-                  />
-                  <SensorWidget
-                    sensorData={{
-                      type: "Pressure",
-                      value: sensorData.pressure?.toFixed(2) || 'N/A',
-                      unit: "hPa",
-                    }}
-                  />
-                  <SensorWidget
-                    sensorData={{
-                      type: "Altitude",
-                      value: sensorData.altitude?.toFixed(2) || 'N/A',
-                      unit: "m",
-                    }}
-                  />
-                  <WifiWidget bar="4" />
-                  <BatteryWidget percent={90} charging={true} />
-                  <ThemeWidget onThemeChange={setTheme} />
-                </>
-              )}
-            </div>
+            {error && <p style={{ color: 'red' }}>{error}</p>}
+            {robotStatus !== 'online' ? (
+              <p style={{ color: 'red' }}>Robot is offline</p>
+            ) : !sensorData || Object.keys(sensorData).length === 0 ? (<p>No data available</p>) : (
+              <div className="vital-stats">
+                <SensorWidget
+                  sensorData={{
+                    type: "Timestamp",
+                    value: sensorData.timestamp ? new Date(sensorData.timestamp).toLocaleString() : 'N/A',
+                    unit: "",
+                  }}
+                />
+                <SensorWidget sensorData={{ type: "Voltage", value: "23", unit: "V" }} />
+                <SensorWidget sensorData={{ type: "Current", value: "250", unit: "mA" }} />
+                <SensorWidget sensorData={{ type: "Inclination", value: "23", unit: "°" }} />
+                <SensorWidget
+                  sensorData={{
+                    type: "Temperature",
+                    value: sensorData.temperature?.toFixed(2) || 'N/A',
+                    unit: "°C",
+                  }}
+                />
+                <SensorWidget
+                  sensorData={{
+                    type: "Pressure",
+                    value: sensorData.pressure?.toFixed(2) || 'N/A',
+                    unit: "hPa",
+                  }}
+                />
+                <SensorWidget
+                  sensorData={{
+                    type: "Altitude",
+                    value: sensorData.altitude?.toFixed(2) || 'N/A',
+                    unit: "m",
+                  }}
+                />
+                <WifiWidget bar="4" />
+                <BatteryWidget percent={90} charging={true} />
+                <ThemeWidget onThemeChange={setTheme} />
+              </div>
+            )}
+
             <div className="user-info">
               <span>Hello, XYZ</span>
               <button onClick={handleLogout}>Logout</button>
@@ -145,13 +187,14 @@ function Dashboard({ setLoggedIn }) {
             <div className="widget widget-gps"><GPSMap /></div>
             <div className="widget widget-pieChart"><PieChart /></div>
             <div className="widget widget-video"><VideoStream /></div>
-            <div className="widget widget-lineGraph"><LineGraph /></div>
+            <div className="widget widget-lineGraph"><LineGraph rawData={sensorData} theme={theme} /></div>
             <div className="widget widget-cameraControls"><CameraControls mode="manual" onButtonPress={sendCommand} /></div>
             <div className="widget widget-locomotiveControls"><LocomotiveControls onButtonPress={sendCommand} /></div>
+            <div className="widget widget-calibrationControls"><CalibrationControls onCalibrate={sendCalibrationCommand} /></div>
           </section>
         </main>
       </div>
-    </div>
+    </div >
   );
 }
 
