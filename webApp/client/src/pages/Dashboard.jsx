@@ -1,37 +1,41 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import './App.css';
-import Sidebar from './Sidebar';
-import BarChart from './barChart';
-import LineGraph from './lineGraph';
-import PieChart from './pieChart';
-import WifiWidget from './wifiWidget';
-import BatteryWidget from './batteryWidget';
-import SensorWidget from './sensorWidget';
-import LocomotiveControls from './locomotiveControls';
-import CameraControls from './cameraControls';
-import ThemeWidget from './themeWidget';
-import VideoStream from './videoStream';
-import GPSMap from './gpsMap';
-import CalibrationControls from './CalibrationControls';
-import axios from 'axios';
+import { useAuth } from '../lib/authContext';
+import api from '../lib/api';
+import Sidebar from '../components/Sidebar';
+import BarChart from '../charts/barChart';
+import LineGraph from '../charts/lineGraph';
+import PieChart from '../charts/pieChart';
+import WifiWidget from '../widgets/wifiWidget';
+import BatteryWidget from '../widgets/batteryWidget';
+import SensorWidget from '../widgets/sensorWidget';
+import LocomotiveControls from '../controls/locomotiveControls';
+import CameraControls from '../controls/cameraControls';
+import ThemeWidget from '../widgets/themeWidget';
+import VideoStream from '../components/videoStream';
+import GPSMap from '../components/gpsMap';
+import CalibrationControls from '../controls/CalibrationControls';
+import '../App.css';
 
-function Dashboard({ setLoggedIn }) {
+function Dashboard() {
   const [theme, setTheme] = useState("light");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [sensorData, setSensorData] = useState(null);
   const [error, setError] = useState(null);
-  const [robotStatus, setRobotStatus] = useState('offline'); // Track robot status
+  const [robotStatus, setRobotStatus] = useState('offline');
+  const [calibrationFeedback, setCalibrationFeedback] = useState(null);
+  
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
     document.body.classList.remove("light", "dark");
     document.body.classList.add(theme);
   }, [theme]);
+
   const checkRobotStatus = async () => {
     try {
-      const response = await axios.get('http://localhost:3000/api/status', {
-        withCredentials: true,
-      });
+      const response = await api.get('/robot/status');
       setRobotStatus(response.data.status);
       setError(null);
     } catch (err) {
@@ -40,15 +44,15 @@ function Dashboard({ setLoggedIn }) {
       setError('Failed to check robot status');
     }
   };
+
   const fetchData = async () => {
-    if (robotStatus !== 'online') return; // Skip fetching if robot is offline
+    if (robotStatus !== 'online') return;
     try {
-      const response = await axios.get('http://localhost:3000/api/data', {
-        withCredentials: true,
-      });
-      console.log('Fetched data:', response.data);
-      setSensorData(response.data);
-      setError(null);
+      const response = await api.get('/sensors/latest');
+      if (response.data.success) {
+        setSensorData(response.data.data);
+        setError(null);
+      }
     } catch (err) {
       setError('Error fetching data');
       console.error('Fetch error:', err.response?.status, err.response?.data, err.message);
@@ -57,11 +61,10 @@ function Dashboard({ setLoggedIn }) {
 
   const fetchCalibrationFeedback = async () => {
     try {
-      const response = await axios.get('http://localhost:3000/api/calibration', {
-        withCredentials: true,
-      });
-      console.log(response.data)
-      // setCalibrationFeedback(response.data);
+      const response = await api.get('/calibration/latest');
+      if (response.data.success) {
+        setCalibrationFeedback(response.data.data);
+      }
     } catch (err) {
       console.error('Calibration feedback error:', err);
       setError('Failed to fetch calibration feedback');
@@ -69,51 +72,48 @@ function Dashboard({ setLoggedIn }) {
   };
 
   useEffect(() => {
-    checkRobotStatus(); // Initial status check
-    const statusInterval = setInterval(checkRobotStatus, 5000); // Check status every 5 seconds
-    const dataInterval = setInterval(fetchData, 1000); // Fetch data every 1 second if online
+    checkRobotStatus();
+    const statusInterval = setInterval(checkRobotStatus, 5000);
+    const dataInterval = setInterval(fetchData, 1000);
     return () => {
       clearInterval(statusInterval);
       clearInterval(dataInterval);
     };
   }, [robotStatus]);
+
   useEffect(() => {
     console.log('Sensor data updated:', sensorData);
   }, [sensorData]);
 
   const sendCommand = async (commandData) => {
-    // if(speed==0){value="stop"}
     try {
-      const response = await axios.post(
-        'http://localhost:3000/api/command',
-        { ...commandData},
-        { withCredentials: true }
-      );
-      console.log('Command sent:', { ...commandData });
+      await api.post('/robot/command', commandData);
+      console.log('Command sent:', commandData);
     } catch (err) {
       console.error('Command error:', err.response?.status, err.message);
+      setError('Failed to send command');
     }
   };
 
   const sendCalibrationCommand = async (quantity) => {
     try {
-      await axios.post('http://localhost:3000/api/calibrate', { quantity }, { withCredentials: true });
+      await api.post('/robot/calibrate', { quantity });
       console.log(`Calibration command sent: ${quantity}`);
-      fetchCalibrationFeedback(); // Fetch feedback immediately
+      fetchCalibrationFeedback();
     } catch (err) {
       console.error('Failed to send calibration command:', err);
       setError(`Failed to send calibration command: ${quantity}`);
     }
   };
 
-  // const navigate = useNavigate();
   const handleLogout = async () => {
-    try {
-      await axios.post('http://localhost:3000/logout', {}, { withCredentials: true });
-      setLoggedIn(false);
-      navigate('/login');
-    } catch (err) {
-      console.error('Logout error:', err);
+    await logout();
+    navigate('/login');
+  };
+
+  const handleAdminUsers = () => {
+    if (user?.designation === 'admin') {
+      navigate('/admin/users');
     }
   };
 
@@ -127,17 +127,24 @@ function Dashboard({ setLoggedIn }) {
     >
       <div className={`dashboard-layout${sidebarCollapsed ? ' sidebar-collapsed' : ''}`}>
         <aside className="sidebar-area">
-          <Sidebar collapse={sidebarCollapsed} setCollapse={setSidebarCollapsed} />
+          <Sidebar 
+            collapse={sidebarCollapsed} 
+            setCollapse={setSidebarCollapsed}
+            onAdminUsers={handleAdminUsers}
+            isAdmin={user?.designation === 'admin'}
+          />
         </aside>
         <main className="main-area">
           <header className="topbar-area">
             <div className="dashboard-title">
               <h1>Dashboard</h1>
-              <span>Welcome!</span>
+              <span>Welcome, {user?.username}!</span>
             </div>
             {robotStatus !== 'online' ? (
               <p style={{ color: 'red' }}>Robot is offline</p>
-            ) : !sensorData || Object.keys(sensorData).length === 0 ? (<p>No data available</p>) : (
+            ) : !sensorData || Object.keys(sensorData).length === 0 ? (
+              <p>No data available</p>
+            ) : (
               <div className="vital-stats">
                 <SensorWidget
                   sensorData={{
@@ -146,38 +153,55 @@ function Dashboard({ setLoggedIn }) {
                     unit: "",
                   }}
                 />
-                <SensorWidget sensorData={{ type: "Voltage", value: "23", unit: "V" }} />
-                <SensorWidget sensorData={{ type: "Current", value: "250", unit: "mA" }} />
-                <SensorWidget sensorData={{ type: "Inclination", value: "23", unit: "°" }} />
+                <SensorWidget 
+                  sensorData={{ 
+                    type: "Voltage", 
+                    value: sensorData.battery?.voltage?.toFixed(2) || 'N/A', 
+                    unit: "V" 
+                  }} 
+                />
+                <SensorWidget 
+                  sensorData={{ 
+                    type: "Current", 
+                    value: sensorData.battery?.current?.toFixed(2) || 'N/A', 
+                    unit: "mA" 
+                  }} 
+                />
+                <SensorWidget 
+                  sensorData={{ 
+                    type: "Roll", 
+                    value: sensorData.orientation?.roll?.toFixed(2) || 'N/A', 
+                    unit: "°" 
+                  }} 
+                />
                 <SensorWidget
                   sensorData={{
                     type: "Temperature",
-                    value: sensorData.temperature?.toFixed(2) || 'N/A',
+                    value: sensorData.environment?.temperature?.toFixed(2) || 'N/A',
                     unit: "°C",
                   }}
                 />
                 <SensorWidget
                   sensorData={{
                     type: "Pressure",
-                    value: sensorData.pressure?.toFixed(2) || 'N/A',
+                    value: sensorData.environment?.pressure?.toFixed(2) || 'N/A',
                     unit: "Pa",
                   }}
                 />
                 <SensorWidget
                   sensorData={{
                     type: "Altitude",
-                    value: sensorData.altitude?.toFixed(2) || 'N/A',
+                    value: sensorData.environment?.altitude?.toFixed(2) || 'N/A',
                     unit: "m",
                   }}
                 />
                 <WifiWidget bar="4" />
                 <BatteryWidget percent={90} charging={true} />
-
               </div>
             )}
             <ThemeWidget onThemeChange={setTheme} />
             <div className="user-info">
-              <span>Hello, XYZ</span>
+              <span>Hello, {user?.username} ({user?.designation})</span>
               <button onClick={handleLogout}>Logout</button>
             </div>
           </header>
@@ -193,7 +217,7 @@ function Dashboard({ setLoggedIn }) {
           </section>
         </main>
       </div>
-    </div >
+    </div>
   );
 }
 

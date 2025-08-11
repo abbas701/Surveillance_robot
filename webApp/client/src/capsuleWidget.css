@@ -1,0 +1,51 @@
+.switcher-widget {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 16px 0;
+}
+
+.switcher-capsule {
+    display: flex;
+    border-radius: 999px;
+    background: #e0e7ef;
+    box-shadow: 0 2px 8px rgba(10,25,47,0.08);
+    overflow: hidden;
+    width: 80px;
+    height: 25px;
+}
+
+.capsule-btn {
+    flex: 1;
+    border: none;
+    background: transparent;
+    padding: 4px 0;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+    color: #0a192f;
+    outline: none;
+}
+.capsule-btn:focus {
+    outline: none;
+}
+
+.capsule-btn.active {
+    background: #0a192f;
+    color: #fff;
+}
+.capsule-btn.active>img {
+    filter: invert(1);
+}
+.capsule-btn.left {
+    border-top-left-radius: 999px;
+    border-bottom-left-radius: 999px;
+}
+
+.capsule-btn.right {
+    border-top-right-radius: 999px;
+    border-bottom-right-radius: 999px;
+}
+.capsule-img{
+    width: 18px;
+    height: 18px;
+}
