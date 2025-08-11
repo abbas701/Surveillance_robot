@@ -3,6 +3,9 @@
 #include <ArduinoJson.h>
 #include <Wire.h>
 #include <Adafruit_BMP280.h>
+#include <Adafruit_MPU6050.h>
+#include <Adafruit_Sensor.h>
+#include <MadgwickAHRS.h>
 
 // ===================== CONFIG =====================
 const char *ssid = "PTCL-LQSAH-2.4G";
@@ -32,6 +35,8 @@ const char *calibrationFeedbackTopic = "robot/calibration/feedback";
 WiFiClient espClient;
 PubSubClient client(espClient);
 Adafruit_BMP280 bmp;
+Adafruit_MPU6050 mpu;
+Madgwick filter;  // For tilt/roll/yaw
 
 // ===================== GLOBAL VARIABLES =====================
 bool isOnline = false;
@@ -59,6 +64,15 @@ float wheel_circumference_cm = 20.0;
 float robot_base_circumference_cm = 47.1;
 float ticksPerFullTurn = (robot_base_circumference_cm / wheel_circumference_cm) * 6400;
 float ticksPerDegree = ticksPerFullTurn / 360.0;
+
+// MPU6050 variables
+unsigned long microsPerReading, microsPrevious;
+
+// Battery variables
+const int batteryPin = 34;      // ADC pin
+const float R1 = 1000000.0;     // 1MΩ
+const float R2 = 220000.0;      // 220kΩ
+const float maxVoltage = 16.8;  // 4.2V × 4 cells
 
 // ===================== MOVEMENT FUNCTIONS =====================
 
@@ -186,6 +200,20 @@ void IRAM_ATTR updateRightEncoder() {
   encoderCountRight += (A == B) ? 1 : -1;
 }
 
+void getRPMs(float &rpmL, float &rpmR) {
+  long countNowLeft = encoderCountLeft;
+  long countNowRight = encoderCountRight;
+
+  long diffLeft = countNowLeft - lastCountLeft;
+  long diffRight = countNowRight - lastCountRight;
+
+  rpmL = (diffLeft / 6400.0) * 600.0;
+  rpmR = (diffRight / 6400.0) * 600.0;
+
+  lastCountLeft = countNowLeft;
+  lastCountRight = countNowRight;
+}
+
 // ===================== MQTT + SENSOR =====================
 void reconnect() {
   while (!client.connected()) {
@@ -218,6 +246,8 @@ void calibrateSensor(const char *quantity) {
     feedback["status"] = "failure";
     feedback["error"] = "unknown_quantity";
   }
+  // mpu.calibrateGyro();
+  // mpu.setFilterBandwidth(MPU6050_BAND_5_HZ);  // Smoother angles
   char buffer[200];
   serializeJson(feedback, buffer);
   client.publish(calibrationFeedbackTopic, buffer);
@@ -274,16 +304,6 @@ void setup() {
   attachInterrupt(digitalPinToInterrupt(encoderPinRightA), updateRightEncoder, CHANGE);
 
   Wire.begin();
-  if (!bmp.begin(0x77)) {
-    Serial.println(F("Could not find BMP280!"));
-    while (1)
-      ;
-  }
-  bmp.setSampling(Adafruit_BMP280::MODE_NORMAL,
-                  Adafruit_BMP280::SAMPLING_X2,
-                  Adafruit_BMP280::SAMPLING_X16,
-                  Adafruit_BMP280::FILTER_X16,
-                  Adafruit_BMP280::STANDBY_MS_500);
 
   WiFi.begin(ssid, password);
   while (WiFi.status() != WL_CONNECTED) {
@@ -295,6 +315,37 @@ void setup() {
   client.setServer(mqttServer, mqttPort);
   client.setCallback(callback);
   reconnect();
+
+  if (!bmp.begin(0x77)) {
+    Serial.println(F("Could not find BMP280!"));
+    while (1)
+      ;
+  }
+  bmp.setSampling(Adafruit_BMP280::MODE_NORMAL,
+                  Adafruit_BMP280::SAMPLING_X2,
+                  Adafruit_BMP280::SAMPLING_X16,
+                  Adafruit_BMP280::FILTER_X16,
+                  Adafruit_BMP280::STANDBY_MS_500);
+
+  // Initialize MPU6050
+  if (!mpu.begin()) {
+    Serial.println("MPU6050 not found!");
+    while (1)
+      ;
+  }
+  // Configure settings
+  mpu.setAccelerometerRange(MPU6050_RANGE_8_G);  // ±8g
+  mpu.setGyroRange(MPU6050_RANGE_500_DEG);       // ±500°/s
+  mpu.setFilterBandwidth(MPU6050_BAND_21_HZ);    // 21Hz filter
+
+  // Initialize Madgwick filter (for orientation)
+  filter.begin(100);  // 100Hz update rate
+  microsPerReading = 1000000 / 100;
+  microsPrevious = micros();
+
+  // Battery
+  analogReadResolution(12);        // 12-bit ADC
+  analogSetAttenuation(ADC_11db);  // Full 0-3.3V range
 }
 
 void loop() {
@@ -308,10 +359,66 @@ void loop() {
     float pressure = bmp.readPressure();
     float altitude = 44330.0 * (1.0 - pow(pressure / 101325.0, 0.1903));
 
-    StaticJsonDocument<300> doc;
+    // Read MPU6050 sensor data
+    unsigned long microsNow = micros();
+    sensors_event_t a, g, temp;
+    mpu.getEvent(&a, &g, &temp);
+
+    float rpmLeft, rpmRight;
+    getRPMs(rpmLeft, rpmRight);
+
+    float speedLeft_cm_s = (rpmLeft * wheel_circumference_cm) / 60.0;
+    float speedRight_cm_s = (rpmRight * wheel_circumference_cm) / 60.0;
+    float speedRobot_cm_s = (speedLeft_cm_s + speedRight_cm_s) / 2.0;
+
+    float distanceLeft_cm = (encoderCountLeft / 6400.0) * wheel_circumference_cm;
+    float distanceRight_cm = (encoderCountRight / 6400.0) * wheel_circumference_cm;
+    float distanceRobot_cm = (distanceLeft_cm + distanceRight_cm) / 2.0;
+
+    //Battery voltage calculation
+    float sum = 0;
+    for (int i = 0; i < 100; i++) {  // Average 100 readings
+      sum += analogRead(batteryPin);
+      delay(1);
+    }
+    float adcValue = sum / 100;
+    float voltageOut = (adcValue * 3.3) / 4095.0;
+    float batteryVoltage = voltageOut * (R1 + R2) / R2;
+    float batteryPercentage = batteryVoltage / maxVoltage * 100;
+
+    StaticJsonDocument<1024> doc;
+    JsonObject battery = doc.createNestedObject("Battery");
+    battery["voltage"] = batteryVoltage;
+    battery["current"] = 0.5;
+
     doc["temperature"] = temperature;
     doc["pressure"] = pressure;
     doc["altitude"] = round(altitude * 10.0) / 10.0;
+
+    JsonObject accel = doc.createNestedObject("Acceleration");
+
+    accel["X"] = a.acceleration.x;
+    accel["Y"] = a.acceleration.y;
+    accel["Z"] = a.acceleration.z;
+
+    JsonObject gyro = doc.createNestedObject("Gyroscope");
+    gyro["X"] = g.gyro.x;
+    gyro["Y"] = g.gyro.y;
+    gyro["Z"] = g.gyro.z;
+    doc["MPU6050_temp"] = temp.temperature;
+    if (microsNow - microsPrevious >= microsPerReading) {
+      filter.updateIMU(g.gyro.x, g.gyro.y, g.gyro.z, a.acceleration.x, a.acceleration.y, a.acceleration.z);
+
+      JsonObject orientation = doc.createNestedObject("Orientation");
+      orientation["Roll"] = filter.getRoll();
+      orientation["Pitch"] = filter.getPitch();
+      orientation["Yaw"] = filter.getYaw();
+      microsPrevious = microsPrevious + microsPerReading;
+    }
+    doc["Elevation"] = filter.getPitch();
+
+    doc["robot_speed_cm_s"] = speedRobot_cm_s;
+    doc["distance_traveled_cm"] = distanceRobot_cm;
 
     JsonObject motors = doc.createNestedObject("motor_status");
     motors["Left Motor"]["Pulses/sec"] = (encoderCountLeft - lastCountLeft);
@@ -322,8 +429,11 @@ void loop() {
     lastCountLeft = encoderCountLeft;
     lastCountRight = encoderCountRight;
 
-    char payload[300];
+    char payload[1024];
     serializeJson(doc, payload);
-    client.publish(sensorTopic, payload);
+
+    if (client.publish(sensorTopic, payload)) {
+      Serial.println(payload);
+    }
   }
 }
