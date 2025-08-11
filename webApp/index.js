@@ -27,9 +27,21 @@ app.use(session({
 pool.query(`
   CREATE TABLE IF NOT EXISTS sensor_data (
     id SERIAL PRIMARY KEY,
-    temperature FLOAT,
+    accel_x FLOAT,
+    accel_y FLOAT,
+    accel_z FLOAT,
+    gyro_x FLOAT,
+    gyro_y FLOAT,
+    gyro_z FLOAT,
+    roll_angle FLOAT,
+    pitch_angle FLOAT,
     pressure FLOAT,
+    temperature FLOAT,
     altitude FLOAT,
+    MQ_2_voltage FLOAT,
+    MQ_135_value FLOAT,
+    battery_current FLOAT,
+    battery_voltage FLOAT,
     timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   )
 `);
@@ -101,10 +113,10 @@ mqttClient.on('message', async (topic, message) => {
     if (topic === sensorTopic) {
         try {
             const data = JSON.parse(message.toString());
-            const { temperature, pressure, altitude } = data;
+            const { accel_x, accel_y, accel_z, gyro_x, gyro_y, gyro_z, roll_angle, pitch_angle, pressure, temperature, altitude, MQ_2_value, MQ_135_value, battery_current, battery_voltage} = data;
             await pool.query(
-                'INSERT INTO sensor_data (temperature, pressure, altitude) VALUES ($1, $2, $3)',
-                [temperature, pressure, altitude]
+                'INSERT INTO sensor_data (accel_x, accel_y, accel_z, gyro_x, gyro_y, gyro_z, roll_angle, pitch_angle, pressure, temperature, altitude, MQ_2_value, MQ_135_value, battery_current, battery_voltage) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12,$13, $14, $15)',
+                [accel_x, accel_y, accel_z, gyro_x, gyro_y, gyro_z, roll_angle, pitch_angle, pressure, temperature, altitude, MQ_2_value, MQ_135_value, battery_current, battery_voltage]
             );
             console.log('Data inserted:', data);
         } catch (err) {
@@ -143,11 +155,11 @@ app.get('/api/data', async (req, res) => {
 });
 
 app.post('/api/command', (req, res) => {
-    const { action, speed, angle, mode } = req.body;
-    if (!action) {
+    const commandData = req.body;
+    if (!commandData["action"]) {
         return res.status(400).json({ error: 'Missing action' });
     }
-    const payload = JSON.stringify({ action, speed, angle, mode });
+    const payload = JSON.stringify(commandData);
     mqttClient.publish(locomotionTopic, payload, (err) => {
         if (err) {
             console.error('Publish error:', err);

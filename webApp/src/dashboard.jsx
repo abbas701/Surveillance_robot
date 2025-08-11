@@ -81,15 +81,15 @@ function Dashboard({ setLoggedIn }) {
     console.log('Sensor data updated:', sensorData);
   }, [sensorData]);
 
-  const sendCommand = async ({ action, speed, angle, mode }) => {
+  const sendCommand = async (commandData) => {
     // if(speed==0){value="stop"}
     try {
       const response = await axios.post(
         'http://localhost:3000/api/command',
-        { action, speed, angle, mode },
+        { ...commandData},
         { withCredentials: true }
       );
-      // console.log('Command sent:', { action, value, speed, mode });
+      console.log('Command sent:', { ...commandData });
     } catch (err) {
       console.error('Command error:', err.response?.status, err.message);
     }
@@ -135,7 +135,6 @@ function Dashboard({ setLoggedIn }) {
               <h1>Dashboard</h1>
               <span>Welcome!</span>
             </div>
-            {error && <p style={{ color: 'red' }}>{error}</p>}
             {robotStatus !== 'online' ? (
               <p style={{ color: 'red' }}>Robot is offline</p>
             ) : !sensorData || Object.keys(sensorData).length === 0 ? (<p>No data available</p>) : (
@@ -161,7 +160,7 @@ function Dashboard({ setLoggedIn }) {
                   sensorData={{
                     type: "Pressure",
                     value: sensorData.pressure?.toFixed(2) || 'N/A',
-                    unit: "hPa",
+                    unit: "Pa",
                   }}
                 />
                 <SensorWidget
@@ -173,10 +172,10 @@ function Dashboard({ setLoggedIn }) {
                 />
                 <WifiWidget bar="4" />
                 <BatteryWidget percent={90} charging={true} />
-                <ThemeWidget onThemeChange={setTheme} />
+
               </div>
             )}
-
+            <ThemeWidget onThemeChange={setTheme} />
             <div className="user-info">
               <span>Hello, XYZ</span>
               <button onClick={handleLogout}>Logout</button>
