@@ -2,19 +2,19 @@ import '../sidebar.css';
 
 const Sidebar = ({ collapse, setCollapse, onAdminUsers, isAdmin }) => {
     const listItems = [
-        { img: "home", label: "Dashboard", action: () => {} },
-        { img: "barchart", label: "Analytics", action: () => {} },
-        { img: "calendar", label: "Calendar", action: () => {} },
-        { img: "tasks", label: "Tasks", action: () => {} },
-        { img: "settings", label: "Settings", action: () => {} }
+        { img: "home", label: "Dashboard", action: () => { } },
+        { img: "barchart", label: "Analytics", action: () => { } },
+        { img: "calendar", label: "Calendar", action: () => { } },
+        { img: "tasks", label: "Tasks", action: () => { } },
+        { img: "settings", label: "Settings", action: () => { } }
     ];
 
     // Add admin-only items
     if (isAdmin) {
-        listItems.unshift({ 
-            img: "userPlus", 
-            label: "Manage Users", 
-            action: onAdminUsers 
+        listItems.unshift({
+            img: "userPlus",
+            label: "Manage Users",
+            action: onAdminUsers
         });
     }
 

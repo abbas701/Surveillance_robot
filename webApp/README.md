@@ -15,7 +15,6 @@ webApp/
 │   │   ├── services/          # Business logic services
 │   │   ├── app.js            # Express app configuration
 │   │   └── server.js         # Server entry point
-│   ├── package.json
 │   └── env.example           # Environment variables template
 │
 ├── client/                     # Frontend React application
@@ -30,9 +29,10 @@ webApp/
 │   │   ├── lib/               # Utilities and API client
 │   │   ├── App.jsx            # Main app component
 │   │   └── main.jsx           # App entry point
-│   ├── package.json
 │   └── vite.config.js         # Vite configuration
 │
+├── package.json                # Root dependencies (backend + frontend)
+├── start-backend.js           # Simple backend start script
 └── README.md                   # This file
 ```
 
@@ -79,35 +79,43 @@ cd webApp
 git checkout feat/webapp-refactor
 ```
 
-### 2. Backend Setup
+### 2. Install All Dependencies
 
 ```bash
-cd backend
-
-# Install dependencies
-npm install
-
-# Create environment file
-copy env.example .env
-# Edit .env with your database and MQTT settings
-
-# Start the server
-npm run dev
+# Install backend and frontend dependencies
+npm run install:all
 ```
 
-### 3. Frontend Setup
+### 3. Environment Setup
 
 ```bash
-cd client
-
-# Install dependencies
-npm install
-
-# Start development server
-npm run dev
+# Create backend environment file
+copy backend/env.example backend/.env
+# Edit backend/.env with your database and MQTT settings
 ```
 
-### 4. Database Setup
+### 4. Start Development
+
+#### Option A: Start Both Backend and Frontend Together
+```bash
+npm run dev
+```
+This will start:
+- Backend on port 3000
+- Frontend on port 5173
+
+#### Option B: Start Separately
+```bash
+# Terminal 1: Backend only
+npm run backend
+# or
+node start-backend.js
+
+# Terminal 2: Frontend only  
+npm run frontend
+```
+
+### 5. Database Setup
 
 The application will automatically create required tables on first run:
 - `users` - User accounts and authentication
@@ -118,7 +126,7 @@ Default admin account: `admin` / `admin1234`
 
 ## 🔧 Environment Variables
 
-### Backend (.env)
+### Backend (backend/.env)
 ```env
 # Database
 DB_USER=postgres
@@ -191,28 +199,27 @@ Real-time charts and graphs for:
 
 ## 🚀 Development
 
-### Backend Development
+### Quick Start (Recommended)
 ```bash
-cd backend
-npm run dev  # Start with nodemon
+npm run dev  # Starts both backend and frontend
 ```
 
-### Frontend Development
+### Separate Development
 ```bash
-cd client
-npm run dev  # Start Vite dev server
+# Backend only
+npm run backend
+
+# Frontend only
+npm run frontend
 ```
 
 ### Building for Production
 ```bash
-# Backend
-cd backend
-npm start
-
-# Frontend
-cd client
+# Build frontend
 npm run build
-npm run preview
+
+# Start production backend
+npm start
 ```
 
 ## 🔍 Troubleshooting
@@ -221,19 +228,24 @@ npm run preview
 
 1. **Database Connection Error**
    - Verify PostgreSQL is running
-   - Check database credentials in `.env`
+   - Check database credentials in `backend/.env`
 
 2. **MQTT Connection Error**
    - Ensure Mosquitto broker is running
-   - Check MQTT broker URL in `.env`
+   - Check MQTT broker URL in `backend/.env`
 
 3. **Frontend Build Errors**
-   - Clear `node_modules` and reinstall
+   - Clear `node_modules` and run `npm run install:all`
    - Check Node.js version compatibility
 
 4. **Authentication Issues**
-   - Verify JWT secret in `.env`
+   - Verify JWT secret in `backend/.env`
    - Check cookie settings and CORS configuration
+
+5. **Port Conflicts**
+   - Backend runs on port 3000
+   - Frontend runs on port 5173
+   - Ensure these ports are available
 
 ## 📝 Contributing
 

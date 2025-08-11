@@ -24,7 +24,7 @@ function Dashboard() {
   const [error, setError] = useState(null);
   const [robotStatus, setRobotStatus] = useState('offline');
   const [calibrationFeedback, setCalibrationFeedback] = useState(null);
-  
+
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -127,8 +127,8 @@ function Dashboard() {
     >
       <div className={`dashboard-layout${sidebarCollapsed ? ' sidebar-collapsed' : ''}`}>
         <aside className="sidebar-area">
-          <Sidebar 
-            collapse={sidebarCollapsed} 
+          <Sidebar
+            collapse={sidebarCollapsed}
             setCollapse={setSidebarCollapsed}
             onAdminUsers={handleAdminUsers}
             isAdmin={user?.designation === 'admin'}
@@ -153,26 +153,26 @@ function Dashboard() {
                     unit: "",
                   }}
                 />
-                <SensorWidget 
-                  sensorData={{ 
-                    type: "Voltage", 
-                    value: sensorData.battery?.voltage?.toFixed(2) || 'N/A', 
-                    unit: "V" 
-                  }} 
+                <SensorWidget
+                  sensorData={{
+                    type: "Voltage",
+                    value: sensorData.battery?.voltage?.toFixed(2) || 'N/A',
+                    unit: "V"
+                  }}
                 />
-                <SensorWidget 
-                  sensorData={{ 
-                    type: "Current", 
-                    value: sensorData.battery?.current?.toFixed(2) || 'N/A', 
-                    unit: "mA" 
-                  }} 
+                <SensorWidget
+                  sensorData={{
+                    type: "Current",
+                    value: sensorData.battery?.current?.toFixed(2) || 'N/A',
+                    unit: "mA"
+                  }}
                 />
-                <SensorWidget 
-                  sensorData={{ 
-                    type: "Roll", 
-                    value: sensorData.orientation?.roll?.toFixed(2) || 'N/A', 
-                    unit: "°" 
-                  }} 
+                <SensorWidget
+                  sensorData={{
+                    type: "Roll",
+                    value: sensorData.orientation?.roll?.toFixed(2) || 'N/A',
+                    unit: "°"
+                  }}
                 />
                 <SensorWidget
                   sensorData={{
