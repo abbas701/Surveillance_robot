@@ -12,27 +12,27 @@ console.log('🚀 Starting Surveillance Robot Backend...');
 console.log('📁 Backend directory:', join(__dirname, 'backend'));
 
 const backend = spawn('node', ['backend/src/server.js'], {
-  stdio: 'inherit',
-  cwd: __dirname
+    stdio: 'inherit',
+    cwd: __dirname
 });
 
 backend.on('error', (error) => {
-  console.error('❌ Backend error:', error);
-  process.exit(1);
+    console.error('❌ Backend error:', error);
+    process.exit(1);
 });
 
 backend.on('exit', (code) => {
-  console.log(`🛑 Backend exited with code ${code}`);
-  process.exit(code);
+    console.log(`🛑 Backend exited with code ${code}`);
+    process.exit(code);
 });
 
 // Handle process termination
 process.on('SIGINT', () => {
-  console.log('\n🛑 Shutting down backend...');
-  backend.kill('SIGINT');
+    console.log('\n🛑 Shutting down backend...');
+    backend.kill('SIGINT');
 });
 
 process.on('SIGTERM', () => {
-  console.log('\n🛑 Shutting down backend...');
-  backend.kill('SIGTERM');
+    console.log('\n🛑 Shutting down backend...');
+    backend.kill('SIGTERM');
 });

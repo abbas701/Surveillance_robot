@@ -31,7 +31,7 @@ webApp/
 │   │   └── main.jsx           # App entry point
 │   └── vite.config.js         # Vite configuration
 │
-├── package.json                # Root dependencies (backend + frontend)
+├── package.json                # ALL dependencies (backend + frontend)
 ├── start-backend.js           # Simple backend start script
 └── README.md                   # This file
 ```
@@ -79,11 +79,11 @@ cd webApp
 git checkout feat/webapp-refactor
 ```
 
-### 2. Install All Dependencies
+### 2. Install Dependencies
 
 ```bash
-# Install backend and frontend dependencies
-npm run install:all
+# Install ALL dependencies (backend + frontend) in one place
+npm install
 ```
 
 ### 3. Environment Setup
@@ -96,7 +96,7 @@ copy backend/env.example backend/.env
 
 ### 4. Start Development
 
-#### Option A: Start Both Backend and Frontend Together
+#### Option A: Start Both Backend and Frontend Together (Recommended)
 ```bash
 npm run dev
 ```
@@ -108,8 +108,6 @@ This will start:
 ```bash
 # Terminal 1: Backend only
 npm run backend
-# or
-node start-backend.js
 
 # Terminal 2: Frontend only  
 npm run frontend
@@ -235,7 +233,7 @@ npm start
    - Check MQTT broker URL in `backend/.env`
 
 3. **Frontend Build Errors**
-   - Clear `node_modules` and run `npm run install:all`
+   - Clear `node_modules` and run `npm install`
    - Check Node.js version compatibility
 
 4. **Authentication Issues**
