@@ -5,13 +5,13 @@
   "scripts": {
     "dev": "concurrently \"npm run backend\" \"npm run frontend\"",
     "backend": "node backend/src/server.js",
-    "frontend": "vite client",
-    "build": "vite build client",
-    "preview": "vite preview client",
+    "frontend": "cd client && npx vite",
+    "build": "cd client && npx vite build",
+    "preview": "cd client && npx vite preview",
     "start": "node backend/src/server.js"
   },
   "dependencies": {
-    "express": "^5.1.0",
+    "express": "^4.18.2",
     "cors": "^2.8.5",
     "pg": "^8.16.0",
     "mqtt": "^5.13.0",
@@ -24,18 +24,18 @@
     "@nivo/line": "^0.99.0",
     "@nivo/pie": "^0.99.0",
     "axios": "^1.9.0",
-    "react": "^19.1.0",
+    "react": "^18.2.0",
     "react-d3-speedometer": "^3.1.1",
-    "react-dom": "^19.1.0",
+    "react-dom": "^18.2.0",
     "react-nipple": "^1.0.2",
-    "react-router-dom": "^7.6.1"
+    "react-router-dom": "^6.20.1"
   },
   "devDependencies": {
     "concurrently": "^8.2.2",
     "nodemon": "^3.0.1",
     "@eslint/js": "^9.25.0",
-    "@types/react": "^19.1.2",
-    "@types/react-dom": "^19.1.2",
+    "@types/react": "^18.2.43",
+    "@types/react-dom": "^18.2.17",
     "@vitejs/plugin-react-swc": "^3.9.0",
     "eslint": "^9.25.0",
     "eslint-plugin-react-hooks": "^5.2.0",

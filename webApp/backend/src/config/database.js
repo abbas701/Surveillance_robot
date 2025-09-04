@@ -1,5 +1,6 @@
 import { Pool } from 'pg';
 import dotenv from 'dotenv';
+import bcrypt from 'bcryptjs';
 
 dotenv.config();
 
@@ -64,7 +65,6 @@ export const initializeDatabase = async () => {
         // Check if admin user exists, if not create default admin
         const adminCheck = await pool.query('SELECT * FROM users WHERE username = $1', ['admin']);
         if (adminCheck.rows.length === 0) {
-            const bcrypt = await import('bcryptjs');
             const hashedPassword = await bcrypt.hash('admin1234', 10);
             await pool.query(
                 'INSERT INTO users (username, password_hash, designation) VALUES ($1, $2, $3)',
