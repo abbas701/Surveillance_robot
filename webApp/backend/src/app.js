@@ -47,6 +47,12 @@ app.use('/api/robot', robotRoutes);
 app.use('/api/sensors', sensorsRoutes);
 app.use('/api/calibration', calibrationRoutes);
 
+app.use(express.static(path.join(__dirname, "../client/dist")));
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "../client/dist/index.html"));
+});
+
+
 // Legacy endpoint compatibility (for smooth transition)
 app.get('/api/status', (req, res) => {
     res.json({ status: mqttService.getRobotStatus() });

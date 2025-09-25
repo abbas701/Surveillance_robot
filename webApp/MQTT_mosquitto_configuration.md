@@ -24,6 +24,6 @@
 #### .\mosquitto_sub.exe -h localhost -t "robot/sensor_data" (run subscriber environment)
 
 ### Open aother PowerShell (Run as admin) for publisher environment
-#### .\mosquitto_pub.exe -h localhost -t "robot/sensors" -m '{"test": "hello"}'  (send data to the subscriber)
+#### .\mosquitto_pub.exe -h localhost -t "robot/sensor_data" -m "{\"test\": \"hello\"}"  (send data to the subscriber)
 
 ### Will see the data appear in the subscriber environment
