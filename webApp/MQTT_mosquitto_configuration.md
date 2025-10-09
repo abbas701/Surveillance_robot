@@ -21,9 +21,12 @@
 #### Start-Process -FilePath ".\mosquitto.exe" -ArgumentList "-c mosquitto.conf" -NoNewWindow
 #### Get-Process -Name mosquitto (Should show output)
 #### netstat -ano | findstr :1883 (Should show 0.0.0.0:1883)
-#### .\mosquitto_sub.exe -h localhost -t "robot/sensors" (run subscriber environment)
+#### .\mosquitto_sub.exe -h localhost -t "robot/sensor_data" (run subscriber environment)
 
 ### Open aother PowerShell (Run as admin) for publisher environment
-#### .\mosquitto_pub.exe -h localhost -t "robot/sensors" -m '{"test": 1, "temperature": 25.5, "pressure": 1013.2, "altitude": 123.45}'  (send data to the subscriber)
+#### .\mosquitto_pub.exe -h localhost -t "robot/sensor_data" -m '{"test": 1, "temperature": 25.5, "pressure": 1013.2, "altitude": 123.45}'  (send data to the subscriber)
+
+### Stop Mosquitto
+#### net stop mosquitto
 
 ### Will see the data appear in the subscriber environment

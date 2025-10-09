@@ -81,15 +81,14 @@ function Dashboard({ setLoggedIn }) {
     console.log('Sensor data updated:', sensorData);
   }, [sensorData]);
 
-  const sendCommand = async ({ action, speed, angle, mode }) => {
-    // if(speed==0){value="stop"}
+  const sendCommand = async ({ action, speed, angle, mode, value }) => {
     try {
       const response = await axios.post(
         'http://localhost:3000/api/command',
-        { action, speed, angle, mode },
+        { action, speed, angle, mode, value },
         { withCredentials: true }
       );
-      // console.log('Command sent:', { action, value, speed, mode });
+      console.log('Command sent:', { action, value, speed, mode, angle });
     } catch (err) {
       console.error('Command error:', err.response?.status, err.message);
     }

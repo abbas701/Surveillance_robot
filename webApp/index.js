@@ -5,6 +5,9 @@ import mqtt from 'mqtt';
 import https from 'https';
 import fs, { stat } from 'fs';
 import { Pool } from "pg";
+import { time } from 'console';
+import cacheSensorData from './redis.js';
+import postgresBatchWrite from './postgresBatchWrite.js';
 
 const app = express();
 const pool = new Pool({
@@ -27,12 +30,45 @@ app.use(session({
 pool.query(`
   CREATE TABLE IF NOT EXISTS sensor_data (
     id SERIAL PRIMARY KEY,
-    temperature FLOAT,
-    pressure FLOAT,
-    altitude FLOAT,
+
+    -- IMU Accelerometer data (4 decimal places)
+    accel_x DECIMAL(8,4),
+    accel_y DECIMAL(8,4),
+    accel_z DECIMAL(8,4),
+    
+    -- IMU Gyroscope data (4 decimal places)  
+    gyro_x DECIMAL(8,4),
+    gyro_y DECIMAL(8,4),
+    gyro_z DECIMAL(8,4),
+    
+    -- Tilt angles (4 decimal places)
+    roll_angle DECIMAL(8,4),
+    pitch_angle DECIMAL(8,4),
+    
+    -- Environmental data
+    pressure DECIMAL(8,2),      -- hPa, 2 decimal places
+    temperature DECIMAL(5,2),   -- °C, 2 decimal places  
+    altitude DECIMAL(8,2),      -- meters, 2 decimal places
+    
+    -- Gas sensors
+    mq_2 DECIMAL(6,4),  -- 4 decimal places for precision
+    mq_135 DECIMAL(6,4),
+    
+    -- Battery data
+    battery_current DECIMAL(6,4),
+    battery_voltage DECIMAL(6,4),
+    
+    -- Wheel encoders
+    left_rpm DECIMAL(8,4),
+    left_ticks INTEGER,
+    right_rpm DECIMAL(8,4), 
+    right_ticks INTEGER,
+    
     timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-  )
+);
 `);
+
+
 
 pool.query(`
   CREATE TABLE IF NOT EXISTS calibration_feedback (
@@ -48,11 +84,14 @@ pool.query(`
 const USERS = [{ username: 'admin', password: '1234' }];
 
 // MQTT topics
-const statusTopic = "robot/status";
-const sensorTopic = "robot/sensor_data";
-const locomotionTopic = "robot/locomotion";
-const calibrationTopic = "robot/calibration";
-const calibrationFeedbackTopic = "robot/calibration/feedback";
+const mqttClient = mqtt.connect('mqtt://127.0.0.1:1883');
+const mqttTopics = {
+    sensor: 'robot/sensor_data',
+    locomotion: 'robot/locomotion',
+    calibration: 'robot/calibration',
+    calibrationFeedback: 'robot/calibration/feedback',
+    status: 'robot/status'
+};
 
 // Track robot status
 let robotStatus = 'offline'; // Default status
@@ -86,85 +125,100 @@ app.get('/api/status', (req, res) => {
     res.json({ status: robotStatus });
 });
 
-const mqttClient = mqtt.connect('mqtt://localhost:1883');
 mqttClient.on('connect', () => {
     console.log('MQTT client connected');
-    mqttClient.subscribe(sensorTopic, (err) => {
+
+    // Subscribe to ALL topics
+    mqttClient.subscribe(mqttTopics.sensor, (err) => {
         if (err) console.error('Failed to subscribe to sensor_data:', err);
+        else console.log('Subscribed to:', mqttTopics.sensor);
     });
-    mqttClient.subscribe(calibrationFeedbackTopic, (err) => {
-        if (err) console.error('Failed to subscribe to sensor_data:', err);
+
+    mqttClient.subscribe(mqttTopics.calibrationFeedback, (err) => {
+        if (err) console.error('Failed to subscribe to calibration_feedback:', err);
+        else console.log('Subscribed to:', mqttTopics.calibrationFeedback);
+    });
+
+    mqttClient.subscribe(mqttTopics.status, (err) => {
+        if (err) console.error('Failed to subscribe to status:', err);
+        else console.log('Subscribed to:', mqttTopics.status);
     });
 });
 
+// Add error handling for MQTT connection
+mqttClient.on('error', (err) => {
+    console.error('MQTT connection error:', err);
+});
+
 mqttClient.on('message', async (topic, message) => {
-    if (topic === sensorTopic) {
-        try {
+    console.log(`Received MQTT message on topic: ${topic}`);
+    console.log(`Message: ${message.toString()}`);
+
+    try {
+        if (topic === mqttTopics.sensor) {
             const data = JSON.parse(message.toString());
-            const { temperature, pressure, altitude } = data;
-            await pool.query(
-                'INSERT INTO sensor_data (temperature, pressure, altitude) VALUES ($1, $2, $3)',
-                [temperature, pressure, altitude]
-            );
-            console.log('Data inserted:', data);
-        } catch (err) {
-            console.error('Error parsing MQTT message:', message.toString(), err.message);
-        }
-    } else if (topic === statusTopic) {
-        robotStatus = message.toString();
-        console.log(`Robot status updated: ${robotStatus}`);
-    } else if (topic = calibrationFeedbackTopic) {
-        try {
+            // 1. Store in Redis for real-time dashboard
+            await cacheSensorData(data);
+
+            // 2. Batch write to PostgreSQL (every 30 seconds or 10 records)
+            await postgresBatchWrite(data);
+            console.log('Stored sensor data in Redis:', data);
+
+        } else if (topic === mqttTopics.status) {
+            robotStatus = message.toString();
+            console.log(`Robot status updated: ${robotStatus}`);
+
+        } else if (topic === mqttTopics.calibrationFeedback) {  // FIXED: === instead of =
             const feedback = JSON.parse(message.toString());
+            console.log('Calibration feedback:', feedback);
+
             const { status, quantity, value, error } = feedback;
             await pool.query(
                 'INSERT INTO calibration_feedback (status, quantity, value, error) VALUES ($1, $2, $3, $4)',
                 [status, quantity, value || null, error || null]
             );
-            // latestCalibrationFeedback = feedback;
-            console.log('Calibration feedback stored:', feedback);
-        } catch (err) {
-            console.error('Error parsing calibration feedback:', message.toString(), err.message);
+            console.log('Calibration feedback stored in database');
+        } else {
+            console.log(`Unknown topic: ${topic}`);
         }
-    }
-});
-
-app.get('/api/data', async (req, res) => {
-    if (robotStatus !== 'online') {
-        return res.status(503).json({ error: 'Robot is offline' });
-    }
-    try {
-        const result = await pool.query('SELECT * FROM sensor_data ORDER BY timestamp DESC LIMIT 1');
-        res.json(result.rows[0] || {});
     } catch (err) {
-        console.error('Database error:', err);
-        res.status(500).json({ error: 'Database error' });
+        console.error('Error processing MQTT message:', err.message);
+        console.error('Raw message:', message.toString());
     }
 });
 
+// Update your API endpoints to use the topics object
 app.post('/api/command', (req, res) => {
-    const { action, speed, angle, mode } = req.body;
+    const { action, speed, angle, mode, value } = req.body;
     if (!action) {
         return res.status(400).json({ error: 'Missing action' });
     }
-    const payload = JSON.stringify({ action, speed, angle, mode });
-    mqttClient.publish(locomotionTopic, payload, (err) => {
+    const payload = JSON.stringify({
+        action,
+        speed: speed || 0,
+        angle: angle || 0,
+        mode: mode || "manual-precise",
+        value: value
+    });
+
+    mqttClient.publish(mqttTopics.locomotion, payload, (err) => {
         if (err) {
             console.error('Publish error:', err);
             return res.status(500).json({ error: 'Failed to send command' });
         }
-        console.log('Published command:', payload);
+        console.log('Published command to locomotion:', payload);
         res.json({ message: 'Command sent' });
     });
 });
 
 app.post('/api/calibrate', (req, res) => {
     const { quantity } = req.body;
-    if (!quantity === undefined) {
+    if (quantity === undefined) {  // FIXED: proper undefined check
         return res.status(400).json({ error: 'Missing quantity' });
     }
     const payload = JSON.stringify({ quantity });
-    mqttClient.publish(calibrationTopic, payload, (err) => {
+
+    mqttClient.publish(mqttTopics.calibration, payload, (err) => {
         if (err) {
             console.error('Publish error:', err);
             return res.status(500).json({ error: 'Failed to send calibration command' });
@@ -172,16 +226,6 @@ app.post('/api/calibrate', (req, res) => {
         console.log('Published calibration command:', payload);
         res.json({ message: 'Calibration command sent' });
     });
-});
-
-app.get('/api/calibration', async (req, res) => {
-    try {
-        const result = await pool.query('SELECT * FROM calibration_feedback ORDER BY timestamp DESC LIMIT 1');
-        res.json(result.rows[0] || latestCalibrationFeedback || {});
-    } catch (err) {
-        console.error('Database error:', err);
-        res.status(500).json({ error: 'Database error' });
-    }
 });
 
 app.use((req, res) => {

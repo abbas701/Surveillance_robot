@@ -8,7 +8,7 @@ function App() {
   const [loggedIn, setLoggedIn] = useState(false);
 
   useEffect(() => {
-    fetch("http://localhost:3000/session", { credentials: "include" })
+    fetch("http://localhost:3000/api/session", { credentials: "include" })
       .then(res => res.json())
       .then(data => {
         setLoggedIn(data.loggedIn);

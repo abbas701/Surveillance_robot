@@ -1,6 +1,6 @@
 import React from "react";
-import Joystick from "react-nipple";
-import "react-nipple/lib/styles.css";
+import Joystick from "react-joystick-component";
+// import "react-nipple/lib/styles.css";
 
 function JoystickControl({ onMove,onEnd }) {
     return (
@@ -10,7 +10,7 @@ function JoystickControl({ onMove,onEnd }) {
                     mode: 'static',
                     position: { top: '50%', left: '50%' },
                     color: 'blue',
-                    size: 510
+                    size: 100
                 }}
                 style={{
                     width: '100%', height: '100%', position: 'relative', touchAction: "none", // mobile-friendly
@@ -20,7 +20,7 @@ function JoystickControl({ onMove,onEnd }) {
                     if (data.distance && data.angle) {
                         onMove({
                             // direction: data.direction.angle,
-                            distance: data.distance,
+                            distance: data.distance*2.55,
                             angle: data.angle.degree,
                         });
                     }

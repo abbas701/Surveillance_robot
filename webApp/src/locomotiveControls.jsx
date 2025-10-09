@@ -11,17 +11,25 @@ function LocomotiveControls({ onButtonPress }) {
   const [hornOn, setHornOn] = useState(false);
 
   const handleDirectionChange = (data) => {
-    // console.log(data)
-    var speedCalculated = Math.round(data["distance"])
-    var angleCalculated = Math.round(data["angle"])
+    var speedCalculated = Math.round(data["distance"]);
+    var angleCalculated = Math.round(data["angle"]);
     onButtonPress({ action: "move", speed: speedCalculated, angle: angleCalculated, mode: mode });
+  };
+
+  const handleEmergencyStop = () => {
+    // Send stop command
+    onButtonPress({ action: "stop" });
+    // Also reset the joystick state by sending zero values
+    handleDirectionChange({ distance: 0, angle: 0 });
+    console.log("🛑 Emergency stop activated");
   };
 
   const toggleHeadlights = () => {
     if (mode.includes("manual")) {
       setHeadlightsOn((prev) => {
         const newState = !prev;
-        onButtonPress({ action: "headlights", value: newState ? "on" : "off" });
+        // FIX: Send boolean value instead of string
+        onButtonPress({ action: "headlights", value: newState });
         return newState;
       });
     }
@@ -31,7 +39,8 @@ function LocomotiveControls({ onButtonPress }) {
     if (mode.includes("manual")) {
       setHornOn((prev) => {
         const newState = !prev;
-        onButtonPress({ action: "horn", value: newState ? "on" : "off" });
+        // FIX: Send boolean value instead of string
+        onButtonPress({ action: "horn", value: newState });
         return newState;
       });
     }
@@ -40,16 +49,22 @@ function LocomotiveControls({ onButtonPress }) {
   return (
     <div className="locomotive-controls">
       <h2>Locomotive Controls</h2>
+      
+      {/* Fullscreen Button */}
       <img
         src="src/assets/Screen/fullscreen.svg"
         alt="Fullscreen"
         onClick={() => onButtonPress({ action: "screen", value: "fullscreen" })}
       />
-      <LocomotionMode onModeChange={(newMode) => {
-        setMode(newMode);
-        onButtonPress({ action: "mode", value: newMode, speed: 0, mode: newMode });
-      }} />
-      {/* <Speedometer
+      
+      {/* Locomotion Mode */}
+      <LocomotionMode 
+        onModeChange={(newMode) => {
+          setMode(newMode);
+          onButtonPress({ action: "mode", value: newMode, speed: 0, mode: newMode });
+        }} 
+      />
+      <Speedometer
         speed={speed}
         onUserChange={(newSpeed) => {
           setSpeed(newSpeed);
@@ -57,31 +72,55 @@ function LocomotiveControls({ onButtonPress }) {
             handleDirectionChange(direction);
           }
         }}
-      /> */}
-      <JoystickControl
+      />
+      {/* Joystick Control */}
+      {/* <JoystickControl
         onMove={(data) => {
-          // Send data to backend (via WebSocket or HTTP)
           handleDirectionChange(data);
         }}
         onEnd={() => {
-          // Send stop command to backend
-          handleDirectionChange({ distance: 0, angle: 0 })
+          handleDirectionChange({ distance: 0, angle: 0 });
         }}
-      />
+      /> */}
 
+      {/* Control Buttons */}
+      <div className="control-buttons">
+        {/* Headlights Button */}        
+        <button 
+          className={`control-button ${headlightsOn ? 'active' : ''}`}
+          onClick={toggleHeadlights}
+          title="Toggle Headlights"
+        >
+          <img
+            src="src/assets/Controls/headlights.svg"
+            alt="Headlights"
+          />
+          <span>Headlights</span>
+        </button>
 
-      <img
-        src="src/assets/Controls/headlights.svg"
-        alt="Headlights"
-        style={{ opacity: headlightsOn ? 1 : 0.5 }}
-        onClick={toggleHeadlights}
-      />
-      <img
-        src="src/assets/Controls/horn.svg"
-        alt="Horn"
-        style={{ opacity: hornOn ? 1 : 0.5 }}
-        onClick={toggleHorn}
-      />
+        {/* Horn Button */}
+        <button 
+          className={`control-button ${hornOn ? 'active' : ''}`}
+          onClick={toggleHorn}
+          title="Toggle Horn"
+        >
+          <img
+            src="src/assets/Controls/horn.svg"
+            alt="Horn"
+          />
+          <span>Horn</span>
+        </button>
+
+        {/* Emergency Stop Button */}
+        <button 
+          className="control-button emergency-stop"
+          onClick={handleEmergencyStop}
+          title="Emergency Stop"
+        >
+          <div className="stop-icon">🛑</div>
+          <span>Emergency Stop</span>
+        </button>
+      </div>
     </div>
   );
 }
