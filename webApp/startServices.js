@@ -1,109 +1,216 @@
 import { exec, spawn } from 'child_process';
 import redis from 'redis';
 
-const redisClient = redis.createClient();
+const REDIS_PATH = 'D:\\redis\\redis-server.exe';
+const MOSQUITTO_PATH = 'D:\\Mosquitto\\mosquitto.exe';
+const MOSQUITTO_CONFIG = 'D:\\Mosquitto\\mosquitto.conf';
+
+const redisClient = redis.createClient({
+  socket: {
+    host: '127.0.0.1',
+    port: 6379
+  }
+});
+
+const processes = [];
 
 async function startServices() {
   console.log('Starting all background services...');
 
-  // Start Redis Server
-  exec('tasklist | findstr redis-server.exe', (redisError, redisStdout) => {
-    if (redisStdout) {
-      console.log('Redis Server is already running');
-      testRedisConnection();
-    } else {
+  try {
+    await startRedis();
+    await startMosquitto();
+    setTimeout(() => testRedisConnection(), 3000);
+  } catch (error) {
+    console.error('Failed to start services:', error.message);
+  }
+}
+
+async function startRedis() {
+  return new Promise((resolve, reject) => {
+    console.log('Checking if Redis is running...');
+
+    exec('tasklist | findstr redis-server.exe', (error, stdout) => {
+      if (stdout) {
+        console.log('Redis Server is already running');
+        resolve(true);
+        return;
+      }
+
       console.log('Starting Redis Server...');
+      console.log('Redis path:', REDIS_PATH);
 
-      // Path to your Redis installation
-      const redisPath = 'E:\\Tech Projects\\Arduino projects\\HU_surv_poj\\Redis-x64-5.0.14.1\\redis-server.exe';
+      try {
+        const redisProcess = spawn(REDIS_PATH, [], {
+          stdio: ['ignore', 'pipe', 'pipe'],
+          detached: false,
+          shell: true
+        });
 
-      const redisProcess = spawn(redisPath, [], {
-        stdio: 'ignore', // Don't capture output
-        detached: true,  // Allow to run independently
-        shell: true
-      });
+        if (!redisProcess || !redisProcess.stdout) {
+          reject(new Error('Failed to create Redis process'));
+          return;
+        }
 
-      redisProcess.on('error', (err) => {
-        console.error('Failed to start Redis Server:', err);
-      });
+        processes.push(redisProcess);
 
-      redisProcess.on('spawn', () => {
-        console.log('Redis Server started successfully (PID:', redisProcess.pid, ')');
+        redisProcess.stdout.on('data', (data) => {
+          const output = data.toString().trim();
+          if (output) console.log(`[Redis] ${output}`);
+        });
 
-        // Unref the process so it doesn't keep parent alive
-        redisProcess.unref();
+        redisProcess.stderr.on('data', (data) => {
+          const error = data.toString().trim();
+          if (error) console.error(`[Redis Error] ${error}`);
+        });
 
-        // Wait a bit for Redis to fully start, then test connection
-        setTimeout(() => {
-          testRedisConnection();
-        }, 2000);
-      });
-    }
-  });
+        redisProcess.on('error', (err) => {
+          console.error('Failed to start Redis Server:', err.message);
+          reject(err);
+        });
 
-  // Start Mosquitto
-  exec('tasklist | findstr mosquitto.exe', (mqttError, mqttStdout) => {
-    if (mqttStdout) {
-      console.log('Mosquitto is already running');
-    } else {
-      console.log('Starting Mosquitto...');
-      // Path to your Mosquitto installation
-      const mosquittoPath = "E:\\Tech Projects\\Arduino projects\\HU_surv_poj\\Mosquitto\\mosquitto.exe";
+        redisProcess.on('spawn', () => {
+          console.log('Redis Server started successfully (PID:', redisProcess.pid, ')');
+          resolve(true);
+        });
 
-      const mosquittoProcess = spawn(mosquittoPath, ['-c', 'mosquitto.conf', '-v'], {
-        stdio: 'ignore', // Don't capture output
-        detached: true,  // Allow to run independently
-        shell: true,
-        cwd: 'D:\\Mosquitto'
-      });
+        redisProcess.on('exit', (code) => {
+          if (code !== 0) {
+            console.error(`Redis process exited with code ${code}`);
+          }
+        });
 
-      mosquittoProcess.on('error', (err) => {
-        console.error('Failed to start Mosquitto:', err);
-      });
-
-      mosquittoProcess.on('spawn', () => {
-        console.log('Mosquitto started successfully (PID:', mosquittoProcess.pid, ')');
-        mosquittoProcess.unref();
-      });
-    }
+      } catch (spawnError) {
+        console.error('Failed to spawn Redis process:', spawnError.message);
+        reject(spawnError);
+      }
+    });
   });
 }
 
-async function testRedisConnection() {
+async function startMosquitto() {
+  return new Promise((resolve, reject) => {
+    console.log('Checking if Mosquitto is running...');
+
+    exec('tasklist | findstr mosquitto.exe', (error, stdout) => {
+      if (stdout) {
+        console.log('Mosquitto is already running');
+        resolve(true);
+        return;
+      }
+
+      console.log('Starting Mosquitto...');
+      console.log('Mosquitto path:', MOSQUITTO_PATH);
+
+      try {
+        const mosquittoProcess = spawn(MOSQUITTO_PATH, ['-c', MOSQUITTO_CONFIG, '-v'], {
+          stdio: ['ignore', 'pipe', 'pipe'],
+          detached: false,
+          shell: true
+        });
+
+        if (!mosquittoProcess || !mosquittoProcess.stdout) {
+          reject(new Error('Failed to create Mosquitto process'));
+          return;
+        }
+
+        processes.push(mosquittoProcess);
+
+        mosquittoProcess.stdout.on('data', (data) => {
+          const output = data.toString().trim();
+          if (output) console.log(`[Mosquitto] ${output}`);
+        });
+
+        mosquittoProcess.stderr.on('data', (data) => {
+          const error = data.toString().trim();
+          if (error) console.error(`[Mosquitto Error] ${error}`);
+        });
+
+        mosquittoProcess.on('error', (err) => {
+          console.error('Failed to start Mosquitto:', err.message);
+          reject(err);
+        });
+
+        mosquittoProcess.on('spawn', () => {
+          console.log('Mosquitto started successfully (PID:', mosquittoProcess.pid, ')');
+          resolve(true);
+        });
+
+        mosquittoProcess.on('exit', (code) => {
+          if (code !== 0) {
+            console.error(`Mosquitto process exited with code ${code}`);
+          }
+        });
+
+      } catch (spawnError) {
+        console.error('Failed to spawn Mosquitto process:', spawnError.message);
+        reject(spawnError);
+      }
+    });
+  });
+}
+
+async function testRedisConnection(retries = 5) {
   try {
+    console.log('🔗 Testing Redis connection...');
     await redisClient.connect();
     await redisClient.set('service-test', 'Services started at: ' + new Date().toISOString());
     const value = await redisClient.get('service-test');
     console.log('Redis connection test successful:', value);
     console.log('All services are running!');
-    console.log('Mosquitto: port 1883');
-    console.log('Redis: port 6379');
 
-    // Close the test connection
     await redisClient.quit();
   } catch (error) {
     console.error('Redis connection failed:', error.message);
-    console.log('Retrying Redis connection in 3 seconds...');
-    setTimeout(testRedisConnection, 3000);
+    if (retries > 0) {
+      console.log(`Retrying Redis connection... (${retries} attempts left)`);
+      setTimeout(() => testRedisConnection(retries - 1), 3000);
+    } else {
+      console.log('Make sure Redis is installed correctly and port 6379 is free');
+    }
   }
 }
 
-// Handle graceful shutdown
-process.on('SIGINT', async () => {
-  console.log('\n🛑 Shutting down services...');
-  try {
-    await redisClient.quit();
-  } catch (error) {
-    // Ignore errors during shutdown
-  }
-  process.exit(0);
-});
+// Simplified graceful shutdown (works on Windows without readline)
+function setupGracefulShutdown() {
+  const shutdown = async () => {
+    console.log('\nShutting down services...');
+
+    try {
+      if (redisClient.isOpen) {
+        await redisClient.quit();
+      }
+    } catch (error) {
+      console.log('Error closing Redis client:', error.message);
+    }
+
+    processes.forEach((process, index) => {
+      try {
+        if (process && !process.killed) {
+          console.log(`Stopping process ${index + 1}...`);
+          process.kill('SIGTERM');
+        }
+      } catch (error) {
+        console.log(`Error stopping process ${index + 1}:`, error.message);
+      }
+    });
+
+    console.log('All services stopped');
+    process.exit(0);
+  };
+
+  // This works fine on Windows with ES modules
+  process.on('SIGINT', shutdown);
+  process.on('SIGTERM', shutdown);
+}
 
 // Start services
-startServices();
-
-// Keep the script alive for a while to show status
-setTimeout(() => {
-  console.log('Service startup process completed.');
-  console.log('Services will continue running in the background.');
-}, 8000);
+try {
+  setupGracefulShutdown();
+  startServices().catch(error => {
+    console.error('Failed to start services:', error.message);
+  });
+} catch (error) {
+  console.error('Critical error in service startup:', error.message);
+  process.exit(1);
+}
