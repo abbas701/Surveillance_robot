@@ -152,7 +152,7 @@ mqttClient.on('error', (err) => {
 
 mqttClient.on('message', async (topic, message) => {
     console.log(`Received MQTT message on topic: ${topic}`);
-    console.log(`Message: ${message.toString()}`);
+    // console.log(`Message: ${message.toString()}`);
 
     try {
         if (topic === mqttTopics.sensor) {
