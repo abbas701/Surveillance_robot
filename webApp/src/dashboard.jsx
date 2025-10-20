@@ -1,25 +1,23 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import './App.css';
 import Sidebar from './Sidebar';
-import BarChart from './barChart';
-import LineGraph from './lineGraph';
-import PieChart from './pieChart';
-import WifiWidget from './wifiWidget';
-import BatteryWidget from './batteryWidget';
-import SensorWidget from './sensorWidget';
-import LocomotiveControls from './locomotiveControls';
-import CameraControls from './cameraControls';
-import ThemeWidget from './themeWidget';
-import VideoStream from './videoStream';
-import GPSMap from './gpsMap';
-import CalibrationControls from './CalibrationControls';
+import BarChart from './pictorial/barChart';
+import LineGraph from './pictorial/lineGraph';
+import PieChart from './pictorial/pieChart';
+import VitalsStrip from './widgets/vitalsStrip';
+import LocomotiveControls from './locomotion/locomotiveControls';
+import CameraControls from './camera/cameraControls';
+import CameraStream from './camera/cameraStream';
+import MpegCameraStream from './camera/mpegCameraStream';
+import GPSMap from './gps/gpsMap';
+import CalibrationControls from './calibration/CalibrationControls';
 import axios from 'axios';
 
 function Dashboard({ setLoggedIn }) {
   const [theme, setTheme] = useState("light");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [sensorData, setSensorData] = useState(null);
+  const [sensorData, setSensorData] = useState([]);
+  const [currentVitals, setCurrentVitals] = useState(null);
   const [error, setError] = useState(null);
   const [robotStatus, setRobotStatus] = useState('offline'); // Track robot status
 
@@ -27,31 +25,21 @@ function Dashboard({ setLoggedIn }) {
     document.body.classList.remove("light", "dark");
     document.body.classList.add(theme);
   }, [theme]);
+
   const checkRobotStatus = async () => {
     try {
       const response = await axios.get('http://localhost:3000/api/status', {
         withCredentials: true,
       });
       setRobotStatus(response.data.status);
+      robotStatus == "offline" && setSensorData([]); setCurrentVitals(null);
       setError(null);
     } catch (err) {
       console.error('Status check error:', err);
       setRobotStatus('offline');
+      setSensorData([]);
+      setCurrentVitals(null);
       setError('Failed to check robot status');
-    }
-  };
-  const fetchData = async () => {
-    if (robotStatus !== 'online') return; // Skip fetching if robot is offline
-    try {
-      const response = await axios.get('http://localhost:3000/api/data', {
-        withCredentials: true,
-      });
-      console.log('Fetched data:', response.data);
-      setSensorData(response.data);
-      setError(null);
-    } catch (err) {
-      setError('Error fetching data');
-      console.error('Fetch error:', err.response?.status, err.response?.data, err.message);
     }
   };
 
@@ -68,18 +56,43 @@ function Dashboard({ setLoggedIn }) {
     }
   };
 
+  // Fetch data periodically
   useEffect(() => {
-    checkRobotStatus(); // Initial status check
-    const statusInterval = setInterval(checkRobotStatus, 5000); // Check status every 5 seconds
-    const dataInterval = setInterval(fetchData, 1000); // Fetch data every 1 second if online
-    return () => {
-      clearInterval(statusInterval);
-      clearInterval(dataInterval);
+    const fetchData = async () => {
+      if (robotStatus !== 'online') return;
+      try {
+        await fetchHistoricalData();
+        await fetchCurrentVitals();
+        setError(null);
+      } catch (err) {
+        console.error('Data fetch error:', err);
+        setError('Failed to fetch sensor data');
+      }
     };
+
+    const fetchHistoricalData = async () => {
+      const response = await fetch('http://localhost:3000/api/sensor-data');
+      const result = await response.json();
+      if (result.success) {
+        setSensorData(result.data);
+      }
+    };
+
+    const fetchCurrentVitals = async () => {
+      const response = await fetch('http://localhost:3000/api/sensor-data/latest');
+      const result = await response.json();
+      if (result.success) {
+        setCurrentVitals(result.data);
+      }
+    };
+    checkRobotStatus();
+    fetchData();
+    const statusInterval = setInterval(checkRobotStatus, 5000); // Check status every 5 seconds
+    const datainterval = setInterval(fetchData, 5000); // Update every 5 seconds
+
+    return () => (datainterval && statusInterval) && (clearInterval(datainterval) && clearInterval(statusInterval));
+
   }, [robotStatus]);
-  useEffect(() => {
-    console.log('Sensor data updated:', sensorData);
-  }, [sensorData]);
 
   const sendCommand = async ({ action, speed, angle, mode, value }) => {
     try {
@@ -137,42 +150,9 @@ function Dashboard({ setLoggedIn }) {
             {error && <p style={{ color: 'red' }}>{error}</p>}
             {robotStatus !== 'online' ? (
               <p style={{ color: 'red' }}>Robot is offline</p>
-            ) : !sensorData || Object.keys(sensorData).length === 0 ? (<p>No data available</p>) : (
+            ) : !currentVitals || Object.keys(currentVitals).length === 0 ? (<p>No data available</p>) : (
               <div className="vital-stats">
-                <SensorWidget
-                  sensorData={{
-                    type: "Timestamp",
-                    value: sensorData.timestamp ? new Date(sensorData.timestamp).toLocaleString() : 'N/A',
-                    unit: "",
-                  }}
-                />
-                <SensorWidget sensorData={{ type: "Voltage", value: "23", unit: "V" }} />
-                <SensorWidget sensorData={{ type: "Current", value: "250", unit: "mA" }} />
-                <SensorWidget sensorData={{ type: "Inclination", value: "23", unit: "°" }} />
-                <SensorWidget
-                  sensorData={{
-                    type: "Temperature",
-                    value: sensorData.temperature?.toFixed(2) || 'N/A',
-                    unit: "°C",
-                  }}
-                />
-                <SensorWidget
-                  sensorData={{
-                    type: "Pressure",
-                    value: sensorData.pressure?.toFixed(2) || 'N/A',
-                    unit: "hPa",
-                  }}
-                />
-                <SensorWidget
-                  sensorData={{
-                    type: "Altitude",
-                    value: sensorData.altitude?.toFixed(2) || 'N/A',
-                    unit: "m",
-                  }}
-                />
-                <WifiWidget bar="4" />
-                <BatteryWidget percent={90} charging={true} />
-                <ThemeWidget onThemeChange={setTheme} />
+                <VitalsStrip currentVitals={currentVitals} setTheme={setTheme} />
               </div>
             )}
 
@@ -185,8 +165,8 @@ function Dashboard({ setLoggedIn }) {
             <div className="widget widget-barChart"><BarChart /></div>
             <div className="widget widget-gps"><GPSMap /></div>
             <div className="widget widget-pieChart"><PieChart /></div>
-            <div className="widget widget-video"><VideoStream /></div>
-            <div className="widget widget-lineGraph"><LineGraph rawData={sensorData} theme={theme} /></div>
+            <div className="widget widget-video"><MpegCameraStream theme={theme} /></div>
+            {/* <div className="widget widget-lineGraph"><LineGraph rawData={currentVitals} theme={theme} /></div> */}
             <div className="widget widget-cameraControls"><CameraControls mode="manual" onButtonPress={sendCommand} /></div>
             <div className="widget widget-locomotiveControls"><LocomotiveControls onButtonPress={sendCommand} /></div>
             <div className="widget widget-calibrationControls"><CalibrationControls onCalibrate={sendCalibrationCommand} /></div>

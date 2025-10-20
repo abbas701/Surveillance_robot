@@ -57,7 +57,7 @@ cd Surveillance_robot
 
 ### 📷 Screenshots
 Add screenshots or gifs of the dashboard and live video feed here.
-![alt text](public/image.png)
+![alt text](./public/dashboard.png)
 
 ### 📜 License
 MIT License. Feel free to use and improve.

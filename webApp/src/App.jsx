@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import Dashboard from "./dashboard";
-import Login from "../login";
+import Login from "./login";
 
 function App() {
   const [loading, setLoading] = useState(true);
@@ -17,16 +17,17 @@ function App() {
   }, []);
 
   if (loading) return <div>Loading...</div>;
-
   return (
-    <Dashboard/>
-    // <Router>
+  <div>
+    <Dashboard />
+    {/* // <Router>
     //   <Routes>
     //     <Route path="/login" element={loggedIn ? <Navigate to="/dashboard" /> : <Login setLoggedIn={setLoggedIn} />} />
     //     <Route path="/dashboard" element={loggedIn ? <Dashboard setLoggedIn={setLoggedIn} /> : <Navigate to="/login" />} />
     //     <Route path="/" element={<Navigate to={loggedIn ? "/dashboard" : "/login"} />} />
     //   </Routes>
-    // </Router>
+    // </Router> */}
+    </div>
   );
 }
 

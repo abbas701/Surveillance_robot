@@ -1,4 +1,4 @@
-import './sidebar.css'
+import './styles/sidebar.css'
 
 const Sidebar = ({ collapse, setCollapse }) => {
     const listItems = [

@@ -6,7 +6,7 @@ import https from 'https';
 import fs, { stat } from 'fs';
 import { Pool } from "pg";
 import { time } from 'console';
-import cacheSensorData from './redis.js';
+import { cacheSensorData, fetchSensorData, fetchLatestSensorData } from './redis.js';
 import postgresBatchWrite from './postgresBatchWrite.js';
 
 const app = express();
@@ -68,8 +68,6 @@ pool.query(`
 );
 `);
 
-
-
 pool.query(`
   CREATE TABLE IF NOT EXISTS calibration_feedback (
     id SERIAL PRIMARY KEY,
@@ -123,6 +121,54 @@ app.get('/api/session', (req, res) => {
 // New endpoint to check robot status
 app.get('/api/status', (req, res) => {
     res.json({ status: robotStatus });
+});
+
+// API endpoint to get all sensor data for graphs
+app.get('/api/sensor-data', async (req, res) => {
+    try {
+        const sensorData = await fetchSensorData();
+
+        res.json({
+            success: true,
+            count: sensorData.length,
+            data: sensorData,
+            timestamp: new Date().toISOString()
+        });
+    } catch (error) {
+        console.error('API Error fetching sensor data:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to fetch sensor data',
+            message: error.message
+        });
+    }
+});
+
+// API endpoint to get only the latest sensor data for current vitals
+app.get('/api/sensor-data/latest', async (req, res) => {
+    try {
+        const latestData = await fetchLatestSensorData();
+
+        if (latestData) {
+            res.json({
+                success: true,
+                data: latestData,
+                timestamp: new Date().toISOString()
+            });
+        } else {
+            res.status(404).json({
+                success: false,
+                error: 'No sensor data available'
+            });
+        }
+    } catch (error) {
+        console.error('API Error fetching latest sensor data:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to fetch latest sensor data',
+            message: error.message
+        });
+    }
 });
 
 mqttClient.on('connect', () => {

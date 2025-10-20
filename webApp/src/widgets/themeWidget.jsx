@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import './capsuleWidget.css';
+import '../styles/capsuleWidget.css';
 
 function ThemeWidget({ onThemeChange }) {
     const [theme, setTheme] = useState("light");

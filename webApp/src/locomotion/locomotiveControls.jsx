@@ -1,7 +1,7 @@
 import { useState } from "react";
 import Speedometer from './speedometer';
 import LocomotionMode from './locomotionMode';
-import JoystickControl from "./joystick";
+import JoystickControl from "./joystickControl";
 
 function LocomotiveControls({ onButtonPress }) {
   const [mode, setMode] = useState("manual-precise");
@@ -10,10 +10,25 @@ function LocomotiveControls({ onButtonPress }) {
   const [headlightsOn, setHeadlightsOn] = useState(false);
   const [hornOn, setHornOn] = useState(false);
 
+  const handleJoystickEnd = () => {
+    console.log("Joystick released");
+    handleDirectionChange({ distance: 0, angle: 0 });
+  };
+
   const handleDirectionChange = (data) => {
     var speedCalculated = Math.round(data["distance"]);
     var angleCalculated = Math.round(data["angle"]);
+    console.log(`Speed: ${speedCalculated}, Angle: ${angleCalculated}, Mode: ${mode}`);
+    setSpeed(Math.floor(speedCalculated / 255 * 100));
     onButtonPress({ action: "move", speed: speedCalculated, angle: angleCalculated, mode: mode });
+  };
+
+  const handleSpeedChange = (newSpeed) => {
+    setSpeed(newSpeed);
+    // If robot is moving, update movement with new speed
+    if (direction !== "S") {
+      sendMovementCommand(direction, newSpeed);
+    }
   };
 
   const handleEmergencyStop = () => {
@@ -49,44 +64,39 @@ function LocomotiveControls({ onButtonPress }) {
   return (
     <div className="locomotive-controls">
       <h2>Locomotive Controls</h2>
-      
+
       {/* Fullscreen Button */}
       <img
         src="src/assets/Screen/fullscreen.svg"
         alt="Fullscreen"
         onClick={() => onButtonPress({ action: "screen", value: "fullscreen" })}
       />
-      
+
       {/* Locomotion Mode */}
-      <LocomotionMode 
+      <LocomotionMode
         onModeChange={(newMode) => {
           setMode(newMode);
           onButtonPress({ action: "mode", value: newMode, speed: 0, mode: newMode });
-        }} 
+        }}
       />
       <Speedometer
         speed={speed}
-        onUserChange={(newSpeed) => {
-          setSpeed(newSpeed);
-          if (direction !== "S") {
-            handleDirectionChange(direction);
-          }
-        }}
+        direction={direction}
+        onUserChange={handleSpeedChange}
       />
       {/* Joystick Control */}
-      {/* <JoystickControl
-        onMove={(data) => {
-          handleDirectionChange(data);
-        }}
-        onEnd={() => {
-          handleDirectionChange({ distance: 0, angle: 0 });
-        }}
-      /> */}
+      <div>
+        <JoystickControl
+          onMove={handleDirectionChange}
+          onEnd={handleJoystickEnd}
+          currentSpeed={speed}
+        />
+      </div>
 
       {/* Control Buttons */}
       <div className="control-buttons">
-        {/* Headlights Button */}        
-        <button 
+        {/* Headlights Button */}
+        <button
           className={`control-button ${headlightsOn ? 'active' : ''}`}
           onClick={toggleHeadlights}
           title="Toggle Headlights"
@@ -99,7 +109,7 @@ function LocomotiveControls({ onButtonPress }) {
         </button>
 
         {/* Horn Button */}
-        <button 
+        <button
           className={`control-button ${hornOn ? 'active' : ''}`}
           onClick={toggleHorn}
           title="Toggle Horn"
@@ -112,7 +122,7 @@ function LocomotiveControls({ onButtonPress }) {
         </button>
 
         {/* Emergency Stop Button */}
-        <button 
+        <button
           className="control-button emergency-stop"
           onClick={handleEmergencyStop}
           title="Emergency Stop"

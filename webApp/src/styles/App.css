@@ -132,7 +132,7 @@ body.light img {
 
 .widget-lineGraph {
   grid-column: 2 / 3;
-  grid-row: 3 / 4;
+  grid-row: 4 / 8;
 }
 
 .widget-cameraControls {

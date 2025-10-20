@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import './capsuleWidget.css';
+import '../styles/capsuleWidget.css';
 
 function LocomotionMode({ onModeChange }) {
     const [mode, setMode] = useState("manual-precise");
