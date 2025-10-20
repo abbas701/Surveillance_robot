@@ -1,12 +1,11 @@
 from config.robot_config import RobotConfig
 from hardware.motors import MotorController
 from hardware.sensors.sensor_module import SensorModule
-from hardware.encoders import Encoder
 from network.mqtt_client import MQTTClient
 from network.network_monitor import NetworkMonitor
 from utils.helpers import RobotUtils
 from utils.pid_controller import PIDController
-from hardware.camera_server import Camera
+from hardware.camera_server import CameraController
 import signal
 import time
 import pigpio
@@ -20,14 +19,13 @@ class SurveillanceRobot:
         # Initialize components
         self.pi = pigpio.pi()
         self.config = RobotConfig()
-        self.motors = MotorController(self.pi,self.config)
-        self.sensors = SensorModule(self.pi,self.config)
-        self.encoders = Encoder(self.config)
-        self.mqtt = MQTTClient(self.pi,self.config)
+        self.motors = MotorController(self.pi, self.config)
+        self.sensors = SensorModule(self.pi)
+        self.mqtt = MQTTClient(self.pi, self.config)
         self.network_monitor = NetworkMonitor()
-        self.pid_controller=PIDController(self.config)
-        self.utils=RobotUtils()
-        self.camera=Camera(self.config)
+        self.pid_controller = PIDController(self.config)
+        self.utils = RobotUtils()
+        self.camera = CameraController(self.config)
 
         # Setup signal handlers for graceful shutdown
         signal.signal(signal.SIGINT, self.shutdown)

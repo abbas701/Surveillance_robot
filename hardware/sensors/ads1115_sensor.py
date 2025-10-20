@@ -2,7 +2,6 @@ import board
 import busio
 from adafruit_ads1x15.ads1115 import ADS1115
 from adafruit_ads1x15.analog_in import AnalogIn
-from adafruit_ads1x15.ads import ADS
 
 class ADS1115Sensor:
     def __init__(self, i2c_bus=None, address=0x48, gain=1):
@@ -22,10 +21,10 @@ class ADS1115Sensor:
 
             # Initialize analog input channels
             self.channels = {
-                "mq2": AnalogIn(self.ads, ADS.P0),
-                "mq135": AnalogIn(self.ads, ADS.P1),
-                "battery_current": AnalogIn(self.ads, ADS.P2),
-                "battery_voltage": AnalogIn(self.ads, ADS.P3),
+                "mq2": AnalogIn(self.ads, AnalogIn.P0),
+                "mq135": AnalogIn(self.ads, AnalogIn.P1),
+                "battery_current": AnalogIn(self.ads, AnalogIn.P2),
+                "battery_voltage": AnalogIn(self.ads, AnalogIn.P3),
             }
 
             print("✓ ADS1115 initialized successfully")

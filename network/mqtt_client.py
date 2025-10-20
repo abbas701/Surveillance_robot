@@ -4,7 +4,7 @@ import json
 
 
 class MQTTClient:
-    def _init_mqtt(self, pi, config):
+    def __init__(self, pi, config):
         """Initialize MQTT client and callback"""
         self.pi = pi
         self.gpio_config = config.GPIO_CONFIG

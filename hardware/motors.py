@@ -7,8 +7,16 @@ class MotorController:
         self.gpio_config = config.GPIO_CONFIG
         self.motor_polarity = config.MOTOR_POLARITY
         # Initialize encoders with pigpio callback
-        self.encoder_left = Encoder(self.pi, **self.gpio_config["encoders"]["left"])
-        self.encoder_right = Encoder(self.pi, **self.gpio_config["encoders"]["right"])
+        self.encoder_left = Encoder(
+            self.pi,
+            self.gpio_config["encoders"]["left"]["pin_a"],
+            self.gpio_config["encoders"]["left"]["pin_b"],
+        )
+        self.encoder_right = Encoder(
+            self.pi,
+            self.gpio_config["encoders"]["right"]["pin_a"],
+            self.gpio_config["encoders"]["right"]["pin_b"],
+        )
         # self.setup_motors()
 
     def _set_motors(self, left_speed, right_speed):

@@ -7,7 +7,7 @@ from .bmp280_sensor import BMP280Sensor
 from .ads1115_sensor import ADS1115Sensor
 
 class SensorModule:
-    def __init__(self):
+    def __init__(self,pi):
         self.i2c_bus = busio.I2C(board.SCL, board.SDA)
 
         # Initialize individual sensors
