@@ -1,4 +1,5 @@
 from hardware.encoders import Encoder
+import pigpio
 
 
 class MotorController:
@@ -6,6 +7,19 @@ class MotorController:
         self.pi = pi
         self.gpio_config = config.GPIO_CONFIG
         self.motor_polarity = config.MOTOR_POLARITY
+        self.pwm_freq = config.PWM_FREQUENCY
+
+        # Motor driver setup
+        for pwm_pin in [
+            self.gpio_config["motors"]["left_pwm"],
+            self.gpio_config["motors"]["right_pwm"],
+        ]:
+            self.pi.set_mode(pwm_pin, pigpio.OUTPUT)
+            self.pi.set_PWM_frequency(pwm_pin, self.pwm_freq)
+
+        for pin in ["left_dir1", "left_dir2", "right_dir1", "right_dir2"]:
+            self.pi.set_mode(self.gpio_config["motors"][pin], pigpio.OUTPUT)
+
         # Initialize encoders with pigpio callback
         self.encoder_left = Encoder(
             self.pi,

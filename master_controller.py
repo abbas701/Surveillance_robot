@@ -34,13 +34,13 @@ class SurveillanceRobot:
     def connect_services(self):
         """Connect to all external services"""
         print("🔗 Connecting to services...")
-        self.mqtt.connect()
+        # self.mqtt.connect()
         print("✅ Services connected")
 
         self._init_gpio()
-        self._init_sensors()
-        self._init_pid_controllers()
-        self._init_mqtt()
+        # self._init_sensors()
+        # self._init_pid_controllers()
+        # self._init_mqtt()
 
         # Robot state
         self.base_pwm = 20
@@ -65,20 +65,46 @@ class SurveillanceRobot:
 
     def _init_gpio(self):
         """Initialize GPIO pins and PWM for L298N"""
-        # Motor driver setup
-        for pwm_pin in [
-            self.config.GPIO_CONFIG["motors"]["left_pwm"],
-            self.config.GPIO_CONFIG["motors"]["right_pwm"],
-        ]:
-            self.pi.set_mode(pwm_pin, pigpio.OUTPUT)
-            self.pi.set_PWM_frequency(pwm_pin, self.config.PWM_FREQUENCY)
-
-        for pin in ["left_dir1", "left_dir2", "right_dir1", "right_dir2"]:
-            self.pi.set_mode(self.config.GPIO_CONFIG["motors"][pin], pigpio.OUTPUT)
 
         # Miscellaneous GPIOs
         self.pi.set_mode(self.config.GPIO_CONFIG["misc"]["horn"], pigpio.OUTPUT)
         self.pi.set_mode(self.config.GPIO_CONFIG["misc"]["headlights"], pigpio.OUTPUT)
+
+    def run(self):
+        """Main robot control loop"""
+        print("🤖 Starting robot main loop...")
+        self.connect_services()
+        
+        try:
+            while True:
+                # Main control logic here
+                time.sleep(0.1)
+        except KeyboardInterrupt:
+            self.cleanup()
+
+    def cleanup(self):
+        """Clean up all resources"""
+        print("🧹 Cleaning up resources...")
+
+        # Stop motors
+        if hasattr(self, "motors"):
+            self.motors._set_motors(0,0)
+
+        # Stop MQTT
+        if hasattr(self, "mqtt"):
+            self.mqtt.disconnect()
+
+        # Stop pigpio
+        if hasattr(self, "pi"):
+            self.pi.stop()
+
+        print("✅ Cleanup completed")
+
+    def shutdown(self, signum, frame):
+        """Graceful shutdown handler"""
+        print(f"\n🛑 Received signal {signum}, shutting down...")
+        self.cleanup()
+        exit(0)
 
 
 # =============================================

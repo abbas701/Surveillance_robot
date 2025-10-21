@@ -74,14 +74,12 @@ class RobotConfig:
     }
 
     # PID Configuration
-    @classmethod
-    def get_pid_config(cls):
-        """Parse PID configuration from environment variables"""
-        pid_left = [float(x) for x in os.getenv("PID_LEFT", "0,0,1").split(",")]
-        pid_right = [float(x) for x in os.getenv("PID_RIGHT", "0,0,1").split(",")]
-        pid_yaw = [float(x) for x in os.getenv("PID_YAW", "0,0,2").split(",")]
-
-        return {
+    
+    """Parse PID configuration from environment variables"""
+    pid_left = [float(x) for x in os.getenv("PID_LEFT", "0,0,1").split(",")]
+    pid_right = [float(x) for x in os.getenv("PID_RIGHT", "0,0,1").split(",")]
+    pid_yaw = [float(x) for x in os.getenv("PID_YAW", "0,0,2").split(",")]
+    PID_CONFIG={
             "left": PID(pid_left[0], pid_left[1], pid_left[2]),
             "right": PID(pid_right[0], pid_right[1], pid_right[2]),
             "yaw": PID(pid_yaw[0], pid_yaw[1], pid_yaw[2]),
@@ -113,9 +111,9 @@ class RobotConfig:
         },
     }
 
-CAMERA_CONFIG={
+    CAMERA_CONFIG={
     
-}
+    }
     # @classmethod
     # def print_config(cls):
     #     """Print current configuration for verification"""

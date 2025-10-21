@@ -228,3 +228,19 @@ class MQTTClient:
 
         except Exception as e:
             print(f"✗ Failed to publish sensor data: {e}")
+
+    def disconnect(self):
+        """Safely disconnect from MQTT broker"""
+        try:
+            if hasattr(self, 'mqtt_client') and self.mqtt_client:
+                # Stop the network loop first
+                self.mqtt_client.loop_stop()
+                
+                # Disconnect from broker
+                if self.mqtt_client.is_connected():
+                    self.mqtt_client.disconnect()
+                    print("✓ MQTT client disconnected")
+                else:
+                    print("ℹ️ MQTT client already disconnected")
+        except Exception as e:
+            print(f"Error disconnecting MQTT: {e}")

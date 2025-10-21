@@ -4,17 +4,17 @@ import math
 class PIDController:
     def __init__(self,config):
         """Initialize PID controllers for motor control"""
-        self.pid_config=config.PID_CONFIG
+        self.config=config.PID_CONFIG
         self.publish_config=config.PUBLISH_CONFIG
         # Set up PID limits and auto mode
-        for key in self.pid_config:
-            self.pid_config[key].output_limits = (-100, 100)
-            self.pid_config[key].setpoint = 0
-            self.pid_config[key].set_auto_mode(True)
+        for key in self.config:
+            self.config[key].output_limits = (-100, 100)
+            self.config[key].setpoint = 0
+            self.config[key].set_auto_mode(True)
 
-        self.pid_left = self.pid_config["left"]
-        self.pid_right = self.pid_config["right"]
-        self.pid_yaw = self.pid_config["yaw"]
+        self.pid_left = self.config["left"]
+        self.pid_right = self.config["right"]
+        self.pid_yaw = self.config["yaw"]
 
     def run(self):
         """Main control loop with PID integration"""
