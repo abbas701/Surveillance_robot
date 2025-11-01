@@ -38,7 +38,7 @@ function JoystickControl({ onMove, onEnd }) {
         // Limit to joystick bounds
         const distance = Math.min(Math.sqrt(x * x + y * y), centerX);
         const angle = Math.atan2(y, x);
-        
+
         const boundedX = Math.cos(angle) * distance;
         const boundedY = Math.sin(angle) * distance;
 
@@ -46,7 +46,7 @@ function JoystickControl({ onMove, onEnd }) {
 
         if (onMove) {
             onMove({
-                distance: (distance / centerX) * 255,
+                distance: (distance / centerX) * import.meta.env.VITE_MOTOR_MAX_SPEED,
                 angle: (angle * 180 / Math.PI + 360) % 360
             });
         }
@@ -59,20 +59,20 @@ function JoystickControl({ onMove, onEnd }) {
 
         joystick.addEventListener("mousedown", handleTouchStart);
         joystick.addEventListener("touchstart", handleTouchStart);
-        
+
         joystick.addEventListener("mousemove", handleTouchMove);
         joystick.addEventListener("touchmove", handleTouchMove, { passive: false });
-        
+
         joystick.addEventListener("mouseup", handleTouchEnd);
         joystick.addEventListener("touchend", handleTouchEnd);
 
         return () => {
             joystick.removeEventListener("mousedown", handleTouchStart);
             joystick.removeEventListener("touchstart", handleTouchStart);
-            
+
             joystick.removeEventListener("mousemove", handleTouchMove);
             joystick.removeEventListener("touchmove", handleTouchMove);
-            
+
             joystick.removeEventListener("mouseup", handleTouchEnd);
             joystick.removeEventListener("touchend", handleTouchEnd);
         };
@@ -81,31 +81,18 @@ function JoystickControl({ onMove, onEnd }) {
     return (
         <div
             ref={joystickRef}
-            style={{
-                width: "200px",
-                height: "200px",
-                borderRadius: "50%",
-                backgroundColor: "#f0f0f0",
-                border: "2px solid #ccc",
-                position: "relative",
-                touchAction: "none",
-                cursor: "pointer"
-            }}
+            className="relative w-[100px] h-[100px] rounded-full bg-[#f0f0f0] border-2 border-[#ccc] touch-none cursor-pointer shadow-inner"
         >
             <div
+                className={`absolute w-[30px] h-[30px] rounded-full bg-blue-500 left-1/2 top-1/2 
+      transition-transform ${isDragging ? "transition-none" : "duration-200 ease-in-out"}
+      shadow-md before:content-[''] before:absolute before:inset-0 before:rounded-full before:bg-gradient-to-t before:from-blue-600/40 before:to-transparent`}
                 style={{
-                    position: "absolute",
-                    width: "50px",
-                    height: "50px",
-                    borderRadius: "50%",
-                    backgroundColor: "blue",
-                    left: "50%",
-                    top: "50%",
                     transform: `translate(-50%, -50%) translate(${position.x}px, ${position.y}px)`,
-                    transition: isDragging ? "none" : "transform 0.2s ease"
                 }}
             />
         </div>
+
     );
 }
 

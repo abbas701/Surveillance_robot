@@ -161,16 +161,50 @@ function Dashboard({ setLoggedIn }) {
               <button onClick={handleLogout}>Logout</button>
             </div>
           </header>
-          <section className="widgets-grid">
-            <div className="widget widget-barChart"><BarChart /></div>
-            <div className="widget widget-gps"><GPSMap /></div>
-            <div className="widget widget-pieChart"><PieChart /></div>
-            <div className="widget widget-video"><MpegCameraStream theme={theme} /></div>
-            {/* <div className="widget widget-lineGraph"><LineGraph rawData={currentVitals} theme={theme} /></div> */}
-            <div className="widget widget-cameraControls"><CameraControls mode="manual" onButtonPress={sendCommand} /></div>
-            <div className="widget widget-locomotiveControls"><LocomotiveControls onButtonPress={sendCommand} /></div>
-            <div className="widget widget-calibrationControls"><CalibrationControls onCalibrate={sendCalibrationCommand} /></div>
+          <section className="grid grid-cols-12 gap-4 p-4">
+            {/* Bar Chart */}
+            <div className="col-span-12 md:col-span-4 lg:col-span-3 row-span-1 bg-white/10 rounded-2xl shadow-md p-4">
+              <BarChart />
+            </div>
+
+            {/* GPS Map */}
+            {/* <div className="col-span-12 md:col-span-8 lg:col-span-6 bg-white/10 rounded-2xl shadow-md p-4">
+              <GPSMap />
+            </div> */}
+
+            {/* Pie Chart */}
+            {/* <div className="col-span-12 md:col-span-4 lg:col-span-3 bg-white/10 rounded-2xl shadow-md p-4">
+              <PieChart />
+            </div> */}
+
+            {/* Camera Controls */}
+            <div className="col-span-12 md:col-span-4 lg:col-span-3 bg-white/10 rounded-2xl shadow-md p-4">
+              <CameraControls mode="manual" onButtonPress={sendCommand} />
+            </div>
+
+            {/* Locomotive Controls */}
+            <div className="col-span-12 lg:col-span-3 bg-white/10 rounded-2xl shadow-md p-4">
+              <LocomotiveControls onButtonPress={sendCommand} theme={theme} />
+            </div>
+
+            {/* Calibration Controls */}
+            {/* <div className="col-span-12 md:col-span-4 lg:col-span-3 bg-white/10 rounded-2xl shadow-md p-4">
+              <CalibrationControls onCalibrate={sendCalibrationCommand} />
+            </div> */}
+
+            {/* Camera Feed */}
+            <div className="col-span-12 md:col-span-8 lg:col-span-6 bg-white/10 rounded-2xl shadow-md p-4">
+              <MpegCameraStream theme={theme} />
+            </div>
+
+            {/* Line Graph */}
+            <div className="col-span-12 lg:col-span-6 bg-white/10 rounded-2xl shadow-md p-4">
+              <LineGraph rawData={currentVitals} theme={theme} />
+            </div>
+
+
           </section>
+
         </main>
       </div>
     </div >

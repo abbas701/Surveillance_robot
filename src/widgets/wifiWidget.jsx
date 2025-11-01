@@ -1,13 +1,13 @@
 import { useState, useEffect } from "react";
 
 
-function WifiWidget({ bar }) {
+function WifiWidget({ bars }) {
   const [wifiStatus, setWifiStatus] = useState("Disconnected");
-  const [wifiSignal, setWifiSignal] = useState(bar);
+  const [wifiSignal, setWifiSignal] = useState(bars);
   const [wifiName, setWifiName] = useState("Unknown");
   useEffect(() => {
-    setWifiStatus(bar>0?"Connected":"Disconnected");
-    setWifiSignal(Number(bar));
+    setWifiStatus(bars>0?"Connected":"Disconnected");
+    setWifiSignal(Number(bars));
     setWifiName("My WiFi Network");
   });
 const imgStyle = {
@@ -17,7 +17,7 @@ const imgStyle = {
   return (
     <div className="wifi-widget">
 
-      <img src={`src/assets/Wifi/${bar}Bar.svg`} alt={`WiFi Signal: ${wifiSignal}`} style={imgStyle}/>
+      <img src={`src/assets/Wifi/${bars}Bar.svg`} alt={`WiFi Signal: ${wifiSignal}`} style={imgStyle}/>
       {/* <p>{wifiStatus}</p>
       <p>Signal Bars: {wifiSignal}</p>
       <p>Wifi Name: {wifiName}</p> */}

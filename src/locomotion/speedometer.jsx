@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import ReactSpeedometer from "react-d3-speedometer";
 
 function Speedometer({ speed, direction }) {
@@ -8,14 +8,22 @@ function Speedometer({ speed, direction }) {
       case "B": return "red";
       case "L": return "orange";
       case "R": return "blue";
-      case "S": return "gray";
-      default: return "black";
+      default: return "gray";
+    }
+  };
+
+  const getDirectionText = (dir) => {
+    switch (dir) {
+      case "F": return "Forward";
+      case "B": return "Backward";
+      case "L": return "Left";
+      case "R": return "Right";
+      default: return "Stopped";
     }
   };
 
   return (
-    <div style={{ textAlign: 'center' }}>
-
+    <div className="flex justify-center items-center">
       <ReactSpeedometer
         value={speed}
         minValue={0}
@@ -24,23 +32,15 @@ function Speedometer({ speed, direction }) {
         needleColor={getDirectionColor()}
         startColor="green"
         endColor="red"
-        height={200}
+        width={140}
+        height={100}
+        ringWidth={15}
+        valueTextFontSize="10px"
+        labelFontSize="8px"
         currentValueText={`${speed}% - ${getDirectionText(direction)}`}
       />
-
     </div>
   );
-}
-
-function getDirectionText(dir) {
-  switch (dir) {
-    case "F": return "Forward";
-    case "B": return "Backward";
-    case "L": return "Left";
-    case "R": return "Right";
-    case "S": return "Stopped";
-    default: return "Unknown";
-  }
 }
 
 export default Speedometer;

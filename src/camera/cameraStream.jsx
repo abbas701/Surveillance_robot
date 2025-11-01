@@ -9,7 +9,8 @@ function CameraStream({ theme = 'light' }) {
   const intervalRef = useRef(null);
 
   // Your RPi IP address
-  const CAMERA_SERVER = 'http://192.168.100.43:5000';
+  // const CAMERA_SERVER = 'http://192.168.100.43:5000';
+  const CAMERA_SERVER = '10.20.7.178:5000';
 
   // Theme-based styling
   const themeClasses = {

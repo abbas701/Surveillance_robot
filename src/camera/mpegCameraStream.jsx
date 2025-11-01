@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-
 function MpegCameraStream({ theme = 'light' }) {
     const [streamUrl, setStreamUrl] = useState('');
     const [isStreaming, setIsStreaming] = useState(false);
@@ -8,18 +7,20 @@ function MpegCameraStream({ theme = 'light' }) {
     const [mode, setMode] = useState('single'); // 'single' or 'stream'
     const videoRef = useRef(null);
 
-    const CAMERA_SERVER = 'http://192.168.100.43:5000';
+    const RPI_IP = import.meta.env.VITE_ROBOT_IP;
+    const CAMERA_PORT = import.meta.env.VITE_CAMERA_PORT;
+    const CAMERA_SERVER = `${RPI_IP}:${CAMERA_PORT}`;
 
     const themeClasses = {
-        container: theme === 'dark' 
-            ? 'bg-gray-900 border-gray-700 text-white' 
+        container: theme === 'dark'
+            ? 'bg-gray-900 border-gray-700 text-white'
             : 'bg-white border-gray-200 text-gray-800',
         header: theme === 'dark' ? 'text-white' : 'text-gray-800',
         subtext: theme === 'dark' ? 'text-gray-300' : 'text-gray-600',
         border: theme === 'dark' ? 'border-gray-600' : 'border-gray-300',
         button: {
-            primary: theme === 'dark' 
-                ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+            primary: theme === 'dark'
+                ? 'bg-blue-600 hover:bg-blue-700 text-white'
                 : 'bg-blue-500 hover:bg-blue-600 text-white',
             secondary: theme === 'dark'
                 ? 'bg-gray-700 hover:bg-gray-600 text-white'
@@ -49,13 +50,11 @@ function MpegCameraStream({ theme = 'light' }) {
             setError('');
             setIsStreaming(true);
             setMode('stream');
-            
-            // Start the stream on server
-            await fetch(`${CAMERA_SERVER}/api/camera/stream/start`);
-            
-            // Set MJPEG stream URL
-            setStreamUrl(`${CAMERA_SERVER}/api/camera/stream`);
-            
+
+            // Add timestamp to force new request (avoid cache)
+            const timestamp = new Date().getTime();
+            setStreamUrl(`${CAMERA_SERVER}/api/camera/stream/start?t=${timestamp}`);
+
         } catch (err) {
             setError('Failed to start stream: ' + err.message);
             setIsStreaming(false);
@@ -76,7 +75,7 @@ function MpegCameraStream({ theme = 'light' }) {
     const captureSingleImage = async () => {
         setError('');
         setMode('single');
-        
+
         try {
             const timestamp = new Date().getTime();
             const url = `${CAMERA_SERVER}/api/camera/capture?t=${timestamp}`;
@@ -88,7 +87,7 @@ function MpegCameraStream({ theme = 'light' }) {
 
     useEffect(() => {
         checkCameraStatus();
-        
+
         // Cleanup on unmount
         return () => {
             if (isStreaming) {
@@ -106,10 +105,9 @@ function MpegCameraStream({ theme = 'light' }) {
                         📸 Camera Feed
                     </h2>
                     <div className="flex items-center gap-4">
-                        <div className={`text-sm font-medium ${
-                            cameraStatus === 'connected' ? 'text-green-500' :
+                        <div className={`text-sm font-medium ${cameraStatus === 'connected' ? 'text-green-500' :
                             cameraStatus === 'checking' ? 'text-yellow-500' : 'text-red-500'
-                        }`}>
+                            }`}>
                             ● {cameraStatus.charAt(0).toUpperCase() + cameraStatus.slice(1)}
                         </div>
                         <div className={`text-sm ${themeClasses.subtext}`}>
@@ -117,19 +115,18 @@ function MpegCameraStream({ theme = 'light' }) {
                         </div>
                     </div>
                 </div>
-                
+
                 {/* Control Buttons */}
                 <div className="flex gap-3 flex-wrap">
                     <button
                         onClick={captureSingleImage}
                         disabled={isStreaming}
-                        className={`px-5 py-2.5 rounded-lg font-medium transition-all duration-200 disabled:opacity-50 ${
-                            mode === 'single' ? themeClasses.button.primary : themeClasses.button.secondary
-                        }`}
+                        className={`px-5 py-2.5 rounded-lg font-medium transition-all duration-200 disabled:opacity-50 ${mode === 'single' ? themeClasses.button.primary : themeClasses.button.secondary
+                            }`}
                     >
                         📷 Single Shot
                     </button>
-                    
+
                     {!isStreaming ? (
                         <button
                             onClick={startStream}
@@ -151,9 +148,8 @@ function MpegCameraStream({ theme = 'light' }) {
 
             {/* Error Display */}
             {error && (
-                <div className={`mb-6 px-4 py-3 rounded-lg border ${
-                    theme === 'dark' ? 'bg-red-900 border-red-700 text-red-200' : 'bg-red-100 border-red-400 text-red-700'
-                }`}>
+                <div className={`mb-6 px-4 py-3 rounded-lg border ${theme === 'dark' ? 'bg-red-900 border-red-700 text-red-200' : 'bg-red-100 border-red-400 text-red-700'
+                    }`}>
                     <div className="flex items-center gap-2">
                         <span>⚠️</span>
                         <span>{error}</span>
@@ -167,29 +163,29 @@ function MpegCameraStream({ theme = 'light' }) {
                     <div className="w-full h-full flex items-center justify-center">
                         {isStreaming ? (
                             // MJPEG Stream
-                            <img 
+                            <img
                                 src={streamUrl}
                                 alt="Live Camera Feed"
                                 className="max-w-full max-h-[70vh] w-auto h-auto rounded-lg shadow-lg"
-                                style={{ 
-                                    maxWidth: '100%', 
-                                    maxHeight: '70vh', 
-                                    width: 'auto', 
-                                    height: 'auto' 
+                                style={{
+                                    maxWidth: '100%',
+                                    maxHeight: '70vh',
+                                    width: 'auto',
+                                    height: 'auto'
                                 }}
                                 onError={() => setError('Failed to load video stream')}
                             />
                         ) : (
                             // Single Image
-                            <img 
+                            <img
                                 src={streamUrl}
                                 alt="Camera Capture"
                                 className="max-w-full max-h-[70vh] w-auto h-auto rounded-lg shadow-lg"
-                                style={{ 
-                                    maxWidth: '100%', 
-                                    maxHeight: '70vh', 
-                                    width: 'auto', 
-                                    height: 'auto' 
+                                style={{
+                                    maxWidth: '100%',
+                                    maxHeight: '70vh',
+                                    width: 'auto',
+                                    height: 'auto'
                                 }}
                                 onError={() => setError('Failed to load image')}
                             />

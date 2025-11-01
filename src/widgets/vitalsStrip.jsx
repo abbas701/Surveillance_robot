@@ -20,7 +20,7 @@ const VitalStrip = ({ currentVitals, setTheme }) => {
                 <BatteryWidget percent={vitals.battery.battery_voltage.voltage / 15 * 100} charging={false} />
             </div>
         )}
-        <WifiWidget bar="4" />
+        <WifiWidget bars="4" />
         <ThemeWidget onThemeChange={setTheme} />
     </div>)
 }

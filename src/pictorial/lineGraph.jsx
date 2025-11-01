@@ -6,7 +6,7 @@ function LineGraph({ rawData, theme }) {
     const [selectedYFields, setSelectedYFields] = useState(['environment.temperature']);
     const [selectedXField, setSelectedXField] = useState('timestamp');
     const [chartData, setChartData] = useState([]);
-    const [timeRange, setTimeRange] = useState('5min'); // 1min, 5min, 15min, 30min, 1hour, all
+    const [timeRange, setTimeRange] = useState(import.meta.env.VITE_LINE_GRAPH_TIME_INTERVAL);
     const [isFullScreen, setIsFullScreen] = useState(false);
     const graphContainerRef = useRef(null);
 
@@ -34,11 +34,11 @@ function LineGraph({ rawData, theme }) {
 
     // Time range options
     const timeRangeOptions = [
-        { value: '1min', label: '1 Minute', minutes: 1 },
-        { value: '5min', label: '5 Minutes', minutes: 5 },
-        { value: '15min', label: '15 Minutes', minutes: 15 },
-        { value: '30min', label: '30 Minutes', minutes: 30 },
-        { value: '1hour', label: '1 Hour', minutes: 60 },
+        { value: 1, label: '1 Minute', minutes: 1 },
+        { value: 5, label: '5 Minutes', minutes: 5 },
+        { value: 15, label: '15 Minutes', minutes: 15 },
+        { value: 30, label: '30 Minutes', minutes: 30 },
+        { value: 60, label: '1 Hour', minutes: 60 },
         { value: 'all', label: 'All Data', minutes: null }
     ];
 
@@ -138,12 +138,12 @@ function LineGraph({ rawData, theme }) {
         const currentTime = Date.now() / 1000; // Current time in seconds
         const selectedRange = timeRangeOptions.find(opt => opt.value === timeRange);
 
-        if (selectedRange.minutes === null) {
+        if (selectedRange.value === null) {
             // Show all data
             setFilteredHistory(completeHistory);
         } else {
             // Filter data based on time range
-            const cutoffTime = currentTime - (selectedRange.minutes * 60);
+            const cutoffTime = currentTime - (selectedRange.value * 60);
             const filtered = completeHistory.filter(data => 
                 data.timestamp >= cutoffTime
             );
