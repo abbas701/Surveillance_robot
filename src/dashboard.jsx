@@ -12,6 +12,7 @@ import MpegCameraStream from './camera/mpegCameraStream';
 import GPSMap from './gps/gpsMap';
 import CalibrationControls from './calibration/CalibrationControls';
 import axios from 'axios';
+import ThemeWidget from "./widgets/themeWidget";
 
 function Dashboard({ setLoggedIn }) {
   const [theme, setTheme] = useState("light");
@@ -71,7 +72,7 @@ function Dashboard({ setLoggedIn }) {
     };
 
     const fetchHistoricalData = async () => {
-      const response = await fetch('http://localhost:3000/api/sensor-data');
+      const response = await fetch('http://localhost:3000/api/sensor/data');
       const result = await response.json();
       if (result.success) {
         setSensorData(result.data);
@@ -79,7 +80,7 @@ function Dashboard({ setLoggedIn }) {
     };
 
     const fetchCurrentVitals = async () => {
-      const response = await fetch('http://localhost:3000/api/sensor-data/latest');
+      const response = await fetch('http://localhost:3000/api/sensor/data/latest');
       const result = await response.json();
       if (result.success) {
         setCurrentVitals(result.data);
@@ -157,6 +158,8 @@ function Dashboard({ setLoggedIn }) {
             )}
 
             <div className="user-info">
+              <ThemeWidget onThemeChange={setTheme} />
+
               <span>Hello, XYZ</span>
               <button onClick={handleLogout}>Logout</button>
             </div>
@@ -201,8 +204,6 @@ function Dashboard({ setLoggedIn }) {
             <div className="col-span-12 lg:col-span-6 bg-white/10 rounded-2xl shadow-md p-4">
               <LineGraph rawData={currentVitals} theme={theme} />
             </div>
-
-
           </section>
 
         </main>

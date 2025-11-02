@@ -16,6 +16,7 @@ function LocomotiveControls({ onButtonPress, theme }) {
 
   const handleDirectionChange = (data) => {
     const speedCalculated = Math.round(data.distance);
+    console.log(data)
     const angleCalculated = Math.round(data.angle);
     setSpeed(Math.floor((speedCalculated / 255) * 100));
     onButtonPress({ action: "move", speed: speedCalculated, angle: angleCalculated, mode });

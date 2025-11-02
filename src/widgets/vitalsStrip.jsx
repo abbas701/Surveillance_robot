@@ -21,7 +21,6 @@ const VitalStrip = ({ currentVitals, setTheme }) => {
             </div>
         )}
         <WifiWidget bars="4" />
-        <ThemeWidget onThemeChange={setTheme} />
     </div>)
 }
 export default VitalStrip;

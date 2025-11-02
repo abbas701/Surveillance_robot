@@ -1,4 +1,3 @@
-// LineGraph.jsx
 import { useState, useEffect, useRef } from 'react';
 import { ResponsiveLine } from '@nivo/line';
 
@@ -6,7 +5,10 @@ function LineGraph({ rawData, theme }) {
     const [selectedYFields, setSelectedYFields] = useState(['environment.temperature']);
     const [selectedXField, setSelectedXField] = useState('timestamp');
     const [chartData, setChartData] = useState([]);
-    const [timeRange, setTimeRange] = useState(import.meta.env.VITE_LINE_GRAPH_TIME_INTERVAL);
+
+    // FIX: Initialize with a valid timeRange value that exists in timeRangeOptions
+    const [timeRange, setTimeRange] = useState(5); // Use numeric value instead of string
+
     const [isFullScreen, setIsFullScreen] = useState(false);
     const graphContainerRef = useRef(null);
 
@@ -18,13 +20,13 @@ function LineGraph({ rawData, theme }) {
     const fieldOptions = [
         'timestamp',
         'environment.temperature',
-        'environment.pressure', 
+        'environment.pressure',
         'environment.altitude',
         'imu.accel.x',
         'imu.accel.y',
         'imu.accel.z',
         'imu.gyro.x',
-        'imu.gyro.y', 
+        'imu.gyro.y',
         'imu.gyro.z',
         'imu.tilt.roll',
         'imu.tilt.pitch',
@@ -32,20 +34,25 @@ function LineGraph({ rawData, theme }) {
         'encoders.right_encoder.rpm'
     ];
 
-    // Time range options
+    // FIX: Time range options - ensure values are consistent
     const timeRangeOptions = [
         { value: 1, label: '1 Minute', minutes: 1 },
         { value: 5, label: '5 Minutes', minutes: 5 },
         { value: 15, label: '15 Minutes', minutes: 15 },
         { value: 30, label: '30 Minutes', minutes: 30 },
         { value: 60, label: '1 Hour', minutes: 60 },
-        { value: 'all', label: 'All Data', minutes: null }
+        { value: 1000, label: 'All Data', minutes: null }
     ];
+
+    // FIX: Safe function to get time range option
+    const getTimeRangeOption = (rangeValue) => {
+        return timeRangeOptions.find(opt => opt.value === rangeValue) || timeRangeOptions[1]; // Fallback to 5 minutes
+    };
 
     // Fullscreen toggle
     const toggleFullScreen = () => {
         const elem = graphContainerRef.current;
-        
+
         if (!isFullScreen) {
             if (elem.requestFullscreen) {
                 elem.requestFullscreen();
@@ -128,29 +135,6 @@ function LineGraph({ rawData, theme }) {
         }
     }, [rawData]);
 
-    // Filter history based on time range
-    useEffect(() => {
-        if (completeHistory.length === 0) {
-            setFilteredHistory([]);
-            return;
-        }
-
-        const currentTime = Date.now() / 1000; // Current time in seconds
-        const selectedRange = timeRangeOptions.find(opt => opt.value === timeRange);
-
-        if (selectedRange.value === null) {
-            // Show all data
-            setFilteredHistory(completeHistory);
-        } else {
-            // Filter data based on time range
-            const cutoffTime = currentTime - (selectedRange.value * 60);
-            const filtered = completeHistory.filter(data => 
-                data.timestamp >= cutoffTime
-            );
-            setFilteredHistory(filtered);
-        }
-    }, [completeHistory, timeRange]);
-
     // Process chart data when filtered history or selected fields change
     useEffect(() => {
         const processed = selectedYFields.map((field) => {
@@ -181,10 +165,21 @@ function LineGraph({ rawData, theme }) {
                         const yValue = getFieldValue(d, field);
                         const xValue = getXValue(d);
 
-                        if (yValue !== null && typeof yValue === 'number' && !isNaN(yValue) && xValue !== null) {
+                        // FIX: Handle both numbers and convert strings to numbers if possible
+                        let numericYValue = null;
+
+                        if (typeof yValue === 'number' && !isNaN(yValue)) {
+                            numericYValue = yValue;
+                        } else if (typeof yValue === 'string') {
+                            // Try to convert string to number, or use 0 as fallback
+                            const parsed = parseFloat(yValue);
+                            numericYValue = isNaN(parsed) ? 0 : parsed;
+                        }
+
+                        if (numericYValue !== null && xValue !== null) {
                             return {
                                 x: xValue,
-                                y: yValue,
+                                y: numericYValue,
                                 originalData: d
                             };
                         }
@@ -192,8 +187,9 @@ function LineGraph({ rawData, theme }) {
                     })
                     .filter(point => point !== null)
             };
-        }).filter(series => series.data.length > 0); // Remove empty series
+        }).filter(series => series.data.length > 0);
 
+        console.log('Processed Chart Data:', processed);
         setChartData(processed);
     }, [filteredHistory, selectedYFields, selectedXField]);
 
@@ -214,8 +210,11 @@ function LineGraph({ rawData, theme }) {
     const borderColor = theme === 'dark' ? 'border-gray-700' : 'border-gray-200';
     const buttonColor = theme === 'dark' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-blue-500 hover:bg-blue-600';
 
+    // FIX: Get current time range option safely
+    const currentTimeRange = getTimeRangeOption(timeRange);
+
     return (
-        <div 
+        <div
             ref={graphContainerRef}
             className={`relative ${bgColor} ${textColor} ${borderColor} border rounded-xl w-full h-full min-h-[500px] p-4 transition-colors duration-200`}
         >
@@ -240,12 +239,12 @@ function LineGraph({ rawData, theme }) {
                     <div className="flex flex-col gap-2">
                         <label className="text-sm font-medium">Time Range:</label>
                         <select
-                            value={timeRange}
-                            onChange={(e) => setTimeRange(e.target.value)}
+                            value={timeRange} // FIX: Use numeric value
+                            onChange={(e) => setTimeRange(Number(e.target.value))} // FIX: Convert to number
                             className={`px-3 py-2 rounded-lg border ${borderColor} ${bgColor} ${textColor} text-sm focus:outline-none focus:ring-2 focus:ring-blue-500`}
                         >
                             {timeRangeOptions.map((opt) => (
-                                <option key={opt.value} value={opt.value}>
+                                <option key={opt.value} value={opt.value}> {/* FIX: Use numeric value */}
                                     {opt.label}
                                 </option>
                             ))}
@@ -279,11 +278,10 @@ function LineGraph({ rawData, theme }) {
                         <button
                             key={field}
                             onClick={() => toggleYField(field)}
-                            className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                                selectedYFields.includes(field)
+                            className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${selectedYFields.includes(field)
                                     ? 'bg-blue-500 text-white shadow-md'
                                     : `${theme === 'dark' ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`
-                            }`}
+                                }`}
                         >
                             {formatFieldName(field)}
                         </button>
@@ -298,9 +296,9 @@ function LineGraph({ rawData, theme }) {
                         data={chartData}
                         margin={{ top: 20, right: 120, bottom: 60, left: 60 }}
                         xScale={{ type: 'point' }}
-                        yScale={{ 
-                            type: 'linear', 
-                            min: 'auto', 
+                        yScale={{
+                            type: 'linear',
+                            min: 'auto',
                             max: 'auto',
                             stacked: false
                         }}
@@ -401,8 +399,8 @@ function LineGraph({ rawData, theme }) {
                         <div className="text-center">
                             <div className="text-lg font-medium mb-2">No data to display</div>
                             <div className="text-sm">
-                                {completeHistory.length === 0 
-                                    ? 'Waiting for sensor data...' 
+                                {completeHistory.length === 0
+                                    ? 'Waiting for sensor data...'
                                     : 'No valid data points for selected fields and time range'
                                 }
                             </div>
@@ -411,16 +409,16 @@ function LineGraph({ rawData, theme }) {
                 )}
             </div>
 
-            {/* Data Summary */}
+            {/* FIX: Data Summary - use safe currentTimeRange */}
             <div className="mt-4 text-sm text-gray-500">
                 Showing {filteredHistory.length} of {completeHistory.length} data points
-                {timeRange !== 'all' && ` (Last ${timeRangeOptions.find(opt => opt.value === timeRange)?.label.toLowerCase()})`}
+                {currentTimeRange.value !== 1000 && ` (Last ${currentTimeRange.label.toLowerCase()})`}
             </div>
         </div>
     );
 }
 
-// Icon components (you can replace with actual icons)
+// Icon components
 const ExpandIcon = ({ className }) => (
     <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />

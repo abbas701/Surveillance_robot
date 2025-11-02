@@ -45,8 +45,10 @@ function JoystickControl({ onMove, onEnd }) {
         setPosition({ x: boundedX, y: boundedY });
 
         if (onMove) {
+            // console.log((distance / centerX))
+            //     console.log(import.meta.env.VITE_MOTOR_MAX_SPEED);
             onMove({
-                distance: (distance / centerX) * import.meta.env.VITE_MOTOR_MAX_SPEED,
+                distance: (distance / centerX) * 255,
                 angle: (angle * 180 / Math.PI + 360) % 360
             });
         }

@@ -1,34 +1,4 @@
-import { Pool } from "pg";
-
-const pool = new Pool({
-    user: 'postgres',
-    host: 'localhost',
-    database: 'iot_surveillance',
-    password: 'admin1234',
-    port: 5432,
-});
-
-let postgresBatch = [];
-const BATCH_SIZE = 10;
-const BATCH_TIMEOUT = 30000; // 30 seconds
-const DB_COLUMNS = 20; // Number of columns in sensor_data table
-
-async function postgresBatchWrite(data) {
-    postgresBatch.push(data);
-
-    if (postgresBatch.length >= BATCH_SIZE) {
-        await flushBatchToPostgres();
-    }
-}
-
-// Batch timeout handler
-setInterval(async () => {
-    if (postgresBatch.length > 0) {
-        await flushBatchToPostgres();
-    }
-}, BATCH_TIMEOUT);
-
-function parseSensorValue(value) {
+export function parseSensorValue(value) {
     if (value === "Sensor Not Found" || value === null || value === undefined) {
         return null;
     }
@@ -39,7 +9,7 @@ function parseSensorValue(value) {
     return value;
 }
 
-async function batchArray(data) {
+export function parseSensorData(data) {
     try {
         // Extract environmental data from the nested structure
         const environment = data.environment;
@@ -99,57 +69,7 @@ async function batchArray(data) {
             return null;
         }
     } catch (error) {
-        console.error('Error processing batch array:', error);
+        console.error('Error processing sensor data:', error);
         return null;
     }
 }
-
-async function flushBatchToPostgres() {
-    if (postgresBatch.length === 0) return;
-
-    const batch = [...postgresBatch];
-    postgresBatch = [];
-    
-    // Filter out null entries and prepare values
-    const validData = [];
-    for (const item of batch) {
-        const processed = await batchArray(item);
-        if (processed !== null) {
-            validData.push(processed);
-        }
-    }
-    
-    if (validData.length === 0) return;
-
-    try {
-        // Create placeholders for the bulk insert
-        const valuePlaceholders = validData.map((_, rowIndex) => {
-            const placeholders = Array.from({length: DB_COLUMNS}, (_, colIndex) => 
-                `$${rowIndex * DB_COLUMNS + colIndex + 1}`
-            );
-            return `(${placeholders.join(', ')})`;
-        }).join(', ');
-
-        const query = `
-            INSERT INTO sensor_data (
-                accel_x, accel_y, accel_z,
-                gyro_x, gyro_y, gyro_z,
-                roll_angle, pitch_angle,
-                pressure, temperature, altitude,
-                mq_2, mq_135,
-                battery_current, battery_voltage,
-                left_rpm, left_ticks, right_rpm, right_ticks,
-                timestamp
-            ) VALUES ${valuePlaceholders}
-        `;
-
-        await pool.query(query, validData.flat());
-        console.log(`Inserted ${validData.length} records into PostgreSQL`);
-    } catch (error) {
-        console.error('PostgreSQL batch insert error:', error);
-        // Optional: put failed batch back for retry
-        // postgresBatch.push(...batch);
-    }
-}
-
-export default postgresBatchWrite;

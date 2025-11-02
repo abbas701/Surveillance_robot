@@ -9,7 +9,7 @@ function MpegCameraStream({ theme = 'light' }) {
 
     const RPI_IP = import.meta.env.VITE_ROBOT_IP;
     const CAMERA_PORT = import.meta.env.VITE_CAMERA_PORT;
-    const CAMERA_SERVER = `${RPI_IP}:${CAMERA_PORT}`;
+    const CAMERA_SERVER = `http://${RPI_IP}:${CAMERA_PORT}`;
 
     const themeClasses = {
         container: theme === 'dark'
@@ -34,16 +34,42 @@ function MpegCameraStream({ theme = 'light' }) {
         }
     };
 
-    const checkCameraStatus = async () => {
-        try {
-            const response = await fetch(`${CAMERA_SERVER}/api/camera/status`);
-            const data = await response.json();
-            setCameraStatus(data.status);
-        } catch (err) {
-            setCameraStatus('error');
-            setError('Cannot connect to camera server');
+const checkCameraStatus = async () => {
+    try {
+        console.log('Attempting to fetch from:', `${CAMERA_SERVER}/api/camera/status`);
+        
+        const response = await fetch(`${CAMERA_SERVER}/api/camera/status`, {
+            method: 'GET',
+            mode: 'cors',
+        });
+        
+        console.log('Response status:', response.status);
+        console.log('Response content-type:', response.headers.get('content-type'));
+        
+        // Get the raw text first to see what's actually returned
+        const rawText = await response.text();
+        console.log('Raw response (first 200 chars):', rawText.substring(0, 200));
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
-    };
+
+        // Check if it's actually JSON
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+            const data = JSON.parse(rawText);
+            console.log('Response data:', data);
+            setCameraStatus(data.status);
+        } else {
+            throw new Error(`Expected JSON but got: ${contentType}`);
+        }
+        
+    } catch (err) {
+        console.error('Camera status check failed:', err);
+        setCameraStatus('error');
+        setError(`Cannot connect to camera server: ${err.message}`);
+    }
+};
 
     const startStream = async () => {
         try {
