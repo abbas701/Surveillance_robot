@@ -1,0 +1,19 @@
+# Core Robotics & Hardware
+pigpio==1.78
+RPi.GPIO==0.7.1
+
+# Sensor Libraries - Use available versions
+adafruit-circuitpython-ads1x15>=1.0.0
+adafruit-circuitpython-bmp280>=3.3.9
+adafruit-circuitpython-mpu6050>=1.1.8
+adafruit-blinka>=8.22.0
+
+# Web & Network
+flask>=2.3.3
+flask-cors>=4.0.0
+paho-mqtt>=1.6.1
+speedtest-cli>=2.1.3
+
+# Utilities & Configuration
+python-dotenv>=1.0.0
+simple-pid>=1.0.1
