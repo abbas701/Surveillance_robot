@@ -143,16 +143,12 @@ class MQTTClient:
                 print(f"🎮 Move command - Angle: {angle}, Speed: {speed}")
                 # Map angle to movement type with PID
                 if 80 <= angle <= 100:
-                    self.motors.move_forward(speed)
-                elif 260 <= angle <= 280:
                     self.motors.move_backward(speed)
+                elif 260 <= angle <= 280:
+                    self.motors.move_forward(speed)
                 elif angle <= 10 or angle >= 350:
-                    self.motors.turn_right(speed)
-                elif 170 <= angle <= 190:
-                    self.motors.turn_left(speed)
-                elif 10 < angle < 80:
                     self.motors.rotate_right(speed)
-                elif 280 < angle < 350:
+                elif 170 <= angle <= 190:
                     self.motors.rotate_left(speed)
                 else:
                     self.motors.stop()

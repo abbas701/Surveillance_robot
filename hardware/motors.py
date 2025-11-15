@@ -122,37 +122,37 @@ class MotorController:
         """Move both motors forward at same speed"""
         print(f"🔼 Moving forward at speed: {speed}")
         self.current_movement = "forward"
-        self._set_motors(speed, speed)
+        self._set_motors(-speed, speed)
 
     def move_backward(self, speed):
         """Move both motors backward at same speed"""
         print(f"🔽 Moving backward at speed: {speed}")
         self.current_movement = "backward"
-        self._set_motors(-speed, -speed)
+        self._set_motors(speed, -speed)
 
     def turn_left(self, speed):
         """Turn left - right motor forward, left motor backward"""
         print(f"↩️ Turning left at speed: {speed}")
         self.current_movement = "turning_left"
-        self._set_motors(-speed, speed)
+        self._set_motors(speed, speed)
 
     def turn_right(self, speed):
         """Turn right - left motor forward, right motor backward"""
         print(f"↪️ Turning right at speed: {speed}")
         self.current_movement = "turning_right"
-        self._set_motors(speed, -speed)
+        self._set_motors(-speed, -speed)
 
     def rotate_left(self, speed):
         """Rotate left in place - right motor forward, left motor backward"""
         print(f"🔄 Rotating left at speed: {speed}")
         self.current_movement = "rotating_left"
-        self._set_motors(-speed, speed)
+        self._set_motors(speed, speed)
 
     def rotate_right(self, speed):
         """Rotate right in place - left motor forward, right motor backward"""
         print(f"🔄 Rotating right at speed: {speed}")
         self.current_movement = "rotating_right"
-        self._set_motors(speed, -speed)
+        self._set_motors(-speed, -speed)
 
     def stop(self):
         """Stop both motors"""
