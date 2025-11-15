@@ -4,10 +4,10 @@ import json
 
 
 class MQTTClient:
-    def __init__(self, pi, config,motor_controller):
+    def __init__(self, pi, config, robot):
         """Initialize MQTT client and callback"""
         self.pi = pi
-        self.motors = motor_controller
+        self.robot = robot
         self.gpio_config = config.GPIO_CONFIG
         self.mqtt_config = config.MQTT_CONFIG
         self.base_pwm = config.base_pwm
@@ -126,40 +126,39 @@ class MQTTClient:
         self.mqtt_client.publish("robot/network", json.dumps(network_data))
 
     def _handle_locomotion_command(self, command):
-        """Process locomotion commands with PID integration"""
+        """Process locomotion commands by updating robot state."""
         action = command.get("action", "")
-        move_type = command.get("type", "speed")
-        value = command.get("value", "")
-
-        angle = command.get("angle", 0)
         speed = command.get("speed", self.base_pwm)
+
         if action == "stop":
-            print("🛑 EMERGENCY STOP COMMAND")
-            self.motors.stop()
+            self.robot.command = "stop"
+            print("🛑 Command received: stop")
             return
 
         elif action == "move":
-            if move_type == "speed":
-                print(f"🎮 Move command - Angle: {angle}, Speed: {speed}")
-                # Map angle to movement type with PID
-                if 80 <= angle <= 100:
-                    self.motors.move_backward(speed)
-                elif 260 <= angle <= 280:
-                    self.motors.move_forward(speed)
-                elif angle <= 10 or angle >= 350:
-                    self.motors.rotate_right(speed)
-                elif 170 <= angle <= 190:
-                    self.motors.rotate_left(speed)
-                else:
-                    self.motors.stop()
+            angle = command.get("angle", 0)
+            print(f"🎮 Move command received - Angle: {angle}, Speed: {speed}")
+            self.robot.target_speed = speed
+            if 260 <= angle <= 280:
+                self.robot.command = "forward"
+            elif 80 <= angle <= 100:
+                self.robot.command = "backward"
+            elif 170 <= angle <= 190:
+                self.robot.command = "left"
+            elif angle <= 10 or angle >= 350:
+                self.robot.command = "right"
+            else:
+                self.robot.command = "stop"
 
         elif action == "horn":
-            horn_value = bool(value)  # Convert to boolean
+            value = command.get("value", "")
+            horn_value = bool(value)
             self.pi.write(self.gpio_config["misc"]["horn"], 1 if horn_value else 0)
             print(f"Horn: {'ON' if horn_value else 'OFF'}")
 
         elif action == "headlights":
-            lights_value = bool(value)  # Convert to boolean
+            value = command.get("value", "")
+            lights_value = bool(value)
             self.pi.write(
                 self.gpio_config["misc"]["headlights"], 1 if lights_value else 0
             )
@@ -193,7 +192,6 @@ class MQTTClient:
             return
 
         try:
-            current_movement = self.motors.get_movement_state()["current_movement"]
             payload = {
                 "imu": imu_data if imu_data else {"error": "No IMU data"},
                 "environment": env_data
@@ -205,7 +203,7 @@ class MQTTClient:
                 "encoders": encoder_data
                 if encoder_data
                 else {"error": "No encoder data"},
-                "movement": current_movement,
+                "movement": self.robot.command,
                 "timestamp": time.time(),
             }
 
@@ -227,7 +225,7 @@ class MQTTClient:
             if hasattr(self, 'mqtt_client') and self.mqtt_client:
                 # Stop the network loop first
                 self.mqtt_client.loop_stop()
-                
+
                 # Disconnect from broker
                 if self.mqtt_client.is_connected():
                     self.mqtt_client.disconnect()
