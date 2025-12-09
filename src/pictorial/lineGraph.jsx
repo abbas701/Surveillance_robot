@@ -31,17 +31,19 @@ function LineGraph({ rawData, theme }) {
         'imu.tilt.roll',
         'imu.tilt.pitch',
         'encoders.left_encoder.rpm',
-        'encoders.right_encoder.rpm'
+        'encoders.right_encoder.rpm',
+        'battery.battery_current.voltage',
+        'battery.battery_voltage.voltage'
     ];
 
     // FIX: Time range options - ensure values are consistent
     const timeRangeOptions = [
-        { value: 1, label: '1 Minute', minutes: 1 },
-        { value: 5, label: '5 Minutes', minutes: 5 },
-        { value: 15, label: '15 Minutes', minutes: 15 },
-        { value: 30, label: '30 Minutes', minutes: 30 },
-        { value: 60, label: '1 Hour', minutes: 60 },
-        { value: 1000, label: 'All Data', minutes: null }
+        { value: 1, label: '1 Minute' },
+        { value: 5, label: '5 Minutes' },
+        { value: 15, label: '15 Minutes' },
+        { value: 30, label: '30 Minutes' },
+        { value: 60, label: '1 Hour' },
+        { value: 1000, label: 'All Data' }
     ];
 
     // FIX: Safe function to get time range option
@@ -189,9 +191,59 @@ function LineGraph({ rawData, theme }) {
             };
         }).filter(series => series.data.length > 0);
 
-        console.log('Processed Chart Data:', processed);
+        // console.log('Processed Chart Data:', processed);
         setChartData(processed);
     }, [filteredHistory, selectedYFields, selectedXField]);
+
+    // Add this useEffect to filter data based on time range
+    useEffect(() => {
+        if (completeHistory.length === 0) {
+            setFilteredHistory([]);
+            return;
+        }
+
+        const currentTimeRange = getTimeRangeOption(timeRange);
+
+        if (currentTimeRange.value === 1000) {
+            // Show all data
+            setFilteredHistory(completeHistory);
+        } else {
+            // Filter data based on time range
+            const now = Date.now() / 1000; // Current time in seconds
+            const cutoffTime = now - (currentTimeRange.value * 60);
+
+            const filtered = completeHistory.filter(dataPoint => {
+                return dataPoint.timestamp >= cutoffTime;
+            });
+
+            setFilteredHistory(filtered);
+        }
+    }, [completeHistory, timeRange]); // Add this dependency
+
+    // In your LineGraph component, add this:
+    // useEffect(() => {
+    //     console.log('LineGraph received rawData:', rawData);
+    //     console.log('completeHistory:', completeHistory);
+    //     console.log('filteredHistory:', filteredHistory);
+    // }, [rawData, completeHistory, filteredHistory]);
+
+    // In the append new data point useEffect:
+    useEffect(() => {
+        if (rawData && rawData.timestamp) {
+            // console.log('📈 Processing new data point:', rawData);
+
+            // Ensure the data has the expected structure
+            const processedData = {
+                timestamp: rawData.timestamp,
+                environment: rawData.environment || {},
+                imu: rawData.imu || {},
+                encoders: rawData.encoders || {},
+                battery: rawData.battery || {}
+            };
+
+            setCompleteHistory((prev) => [...prev, processedData]);
+        }
+    }, [rawData]);
 
     const toggleYField = (field) => {
         setSelectedYFields((prev) =>
@@ -279,8 +331,8 @@ function LineGraph({ rawData, theme }) {
                             key={field}
                             onClick={() => toggleYField(field)}
                             className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${selectedYFields.includes(field)
-                                    ? 'bg-blue-500 text-white shadow-md'
-                                    : `${theme === 'dark' ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`
+                                ? 'bg-blue-500 text-white shadow-md'
+                                : `${theme === 'dark' ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`
                                 }`}
                         >
                             {formatFieldName(field)}

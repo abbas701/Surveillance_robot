@@ -35,3 +35,7 @@ Thumbs.db
 
 # Misc
 webApp/.parcel-cache/
+
+#dump files
+*.dmp
+*.rdb
