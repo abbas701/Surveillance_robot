@@ -123,7 +123,20 @@ class MQTTClient:
             print(f"Error processing MQTT message: {e}")
 
     def publish_network_metrics(self, network_data):
-        self.mqtt_client.publish("robot/network", json.dumps(network_data))
+        """Publish network metrics to MQTT"""
+        if not self.mqtt_client.is_connected():
+            print("MQTT not connected, skipping network data publish")
+            return
+        
+        try:
+            result = self.mqtt_client.publish(
+                self.mqtt_config["topics"]["network"], 
+                json.dumps(network_data)
+            )
+            result.wait_for_publish(timeout=5)
+            print(f"✓ Published network data to MQTT (msg ID: {result.mid})")
+        except Exception as e:
+            print(f"✗ Failed to publish network data: {e}")
 
     def _handle_locomotion_command(self, command):
         """Process locomotion commands by updating robot state."""

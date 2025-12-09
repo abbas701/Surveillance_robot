@@ -92,6 +92,14 @@ class SurveillanceRobot:
         except Exception as e:
             print(f"❌ Error publishing sensor data: {e}")
 
+    def _publish_network_data(self):
+        """Read and publish network metrics"""
+        try:
+            network_data = self.network_monitor.get_complete_metrics()
+            self.mqtt.publish_network_metrics(network_data)
+        except Exception as e:
+            print(f"❌ Error publishing network data: {e}")
+
     def _update_rpm(self):
         """Update RPM calculations"""
         current_time = time.time()
@@ -126,8 +134,10 @@ class SurveillanceRobot:
         print("🤖 Starting robot main loop...")
         self.connect_services()
 
-        last_publish_time = 0
-        publish_interval = 2  # seconds
+        last_sensor_publish_time = 0
+        last_network_publish_time = 0
+        sensor_publish_interval = self.config.PUBLISH_CONFIG["sensor_data_interval"]
+        network_publish_interval = self.config.PUBLISH_CONFIG["network_data_interval"]
 
         try:
             while True:
@@ -171,9 +181,14 @@ class SurveillanceRobot:
                         self.motors.encoder_right.reset()
 
                 # Publish sensor data at regular intervals
-                if current_time - last_publish_time >= publish_interval:
+                if current_time - last_sensor_publish_time >= sensor_publish_interval:
                     self._publish_sensor_data()
-                    last_publish_time = current_time
+                    last_sensor_publish_time = current_time
+
+                # Publish network data at regular intervals
+                if current_time - last_network_publish_time >= network_publish_interval:
+                    self._publish_network_data()
+                    last_network_publish_time = current_time
 
                 # Control loop frequency (20Hz)
                 time.sleep(0.05)

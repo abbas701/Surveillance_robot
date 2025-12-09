@@ -32,6 +32,7 @@ class RobotConfig:
             "calibration_feedback": os.getenv(
                 "MQTT_TOPIC_CALIBRATION_FEEDBACK", "robot/calibration/feedback"
             ),
+            "network": os.getenv("MQTT_TOPIC_NETWORK", "robot/network"),
         },
     }
 
@@ -39,6 +40,7 @@ class RobotConfig:
     PUBLISH_CONFIG = {
         "sensor_data_interval": int(os.getenv("SENSOR_DATA_INTERVAL", "5")),
         "status_interval": int(os.getenv("STATUS_INTERVAL", "2")),
+        "network_data_interval": int(os.getenv("NETWORK_DATA_INTERVAL", "60")),
         "control_frequency": int(os.getenv("CONTROL_FREQUENCY", "20")),
     }
 
