@@ -9,6 +9,7 @@ import LocomotiveControls from './locomotion/locomotiveControls';
 import CameraControls from './camera/cameraControls';
 import CameraStream from './camera/cameraStream';
 import MpegCameraStream from './camera/mpegCameraStream';
+import CameraMountJoystick from './camera/cameraMountJoystick';
 import GPSMap from './gps/gpsMap';
 import CalibrationControls from './calibration/CalibrationControls';
 import axios from 'axios';
@@ -198,6 +199,11 @@ function Dashboard({ setLoggedIn }) {
             {/* Camera Feed */}
             <div className="col-span-12 md:col-span-8 lg:col-span-6 bg-white/10 rounded-2xl shadow-md p-4">
               <MpegCameraStream theme={theme} />
+            </div>
+
+            {/* Camera Mount Joystick */}
+            <div className="col-span-12 md:col-span-4 lg:col-span-3 bg-white/10 rounded-2xl shadow-md p-4 flex items-center justify-center">
+              <CameraMountJoystick />
             </div>
 
             {/* Line Graph */}
