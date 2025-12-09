@@ -86,6 +86,7 @@ class MQTTClient:
             )
             client.subscribe(self.mqtt_config["topics"]["locomotion"])
             client.subscribe(self.mqtt_config["topics"]["calibration"])
+            client.subscribe(self.mqtt_config["topics"]["camera_mount"])
             client.publish(self.mqtt_config["topics"]["status"], "online", retain=True)
             self.is_online = True
             print("MQTT subscriptions set up and status published")
@@ -118,6 +119,9 @@ class MQTTClient:
 
             elif message.topic == self.mqtt_config["topics"]["calibration"]:
                 self._handle_calibration_command(payload)
+
+            elif message.topic == self.mqtt_config["topics"]["camera_mount"]:
+                self._handle_camera_mount_command(payload)
 
         except Exception as e:
             print(f"Error processing MQTT message: {e}")
@@ -197,6 +201,34 @@ class MQTTClient:
             json.dumps(feedback),
             retain=True,
         )
+
+    def _handle_camera_mount_command(self, command):
+        """Process camera mount control commands"""
+        action = command.get("action", "")
+        
+        if action == "move":
+            # Joystick-based movement
+            angle = command.get("angle", 0)
+            magnitude = command.get("magnitude", 0)
+            print(f"📹 Camera mount move command - Angle: {angle}, Magnitude: {magnitude}")
+            self.robot.camera_mount.move_from_joystick(angle, magnitude)
+        
+        elif action == "set_position":
+            # Direct position control
+            pan = command.get("pan", None)
+            tilt = command.get("tilt", None)
+            
+            if pan is not None and tilt is not None:
+                print(f"📹 Camera mount position - Pan: {pan}°, Tilt: {tilt}°")
+                self.robot.camera_mount.set_position(pan, tilt)
+            elif pan is not None:
+                self.robot.camera_mount.set_pan(pan)
+            elif tilt is not None:
+                self.robot.camera_mount.set_tilt(tilt)
+        
+        elif action == "center":
+            print("📹 Centering camera mount")
+            self.robot.camera_mount.center()
 
     def _publish_sensor_data(self, imu_data, env_data, battery_data,encoder_data):
         """Publish sensor data to MQTT"""

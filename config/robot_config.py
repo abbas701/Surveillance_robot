@@ -33,6 +33,7 @@ class RobotConfig:
                 "MQTT_TOPIC_CALIBRATION_FEEDBACK", "robot/calibration/feedback"
             ),
             "network": os.getenv("MQTT_TOPIC_NETWORK", "robot/network"),
+            "camera_mount": os.getenv("MQTT_TOPIC_CAMERA_MOUNT", "robot/camera_mount"),
         },
     }
 
@@ -111,6 +112,10 @@ class RobotConfig:
         "misc": {
             "horn": int(os.getenv("MISC_HORN", "17")),
             "headlights": int(os.getenv("MISC_HEADLIGHTS", "26")),
+        },
+        "camera_mount": {
+            "pan_servo": int(os.getenv("CAMERA_PAN_SERVO", "23")),
+            "tilt_servo": int(os.getenv("CAMERA_TILT_SERVO", "24")),
         },
     }
     # @classmethod

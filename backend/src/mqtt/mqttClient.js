@@ -9,7 +9,8 @@ const mqttTopics = {
     calibration: 'robot/calibration',
     calibrationFeedback: 'robot/calibration/feedback',
     status: 'robot/status',
-    network: 'robot/network'
+    network: 'robot/network',
+    cameraMount: 'robot/camera_mount'
 };
 
 let mqttClient = null;

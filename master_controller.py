@@ -1,6 +1,7 @@
 from config.robot_config import RobotConfig
 from hardware.motors import MotorController
 from hardware.sensors.sensor_module import SensorModule
+from hardware.camera_mount import CameraMount
 from network.mqtt_client import MQTTClient
 from network.network_monitor import NetworkMonitor
 from utils.helpers import RobotUtils
@@ -21,6 +22,7 @@ class SurveillanceRobot:
         self.config = RobotConfig()
         self.motors = MotorController(self.pi, self.config)
         self.sensors = SensorModule(self.pi)
+        self.camera_mount = CameraMount(self.pi, self.config)
         # Pass the robot instance (self) to the MQTT client
         self.mqtt = MQTTClient(self.pi, self.config, self)
         self.network_monitor = NetworkMonitor()
@@ -201,6 +203,8 @@ class SurveillanceRobot:
         print("🧹 Cleaning up resources...")
         if hasattr(self, "motors"):
             self.motors.stop()
+        if hasattr(self, "camera_mount"):
+            self.camera_mount.cleanup()
         if hasattr(self, "mqtt"):
             self.mqtt.disconnect()
         if hasattr(self, "pi"):
