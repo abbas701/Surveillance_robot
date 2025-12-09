@@ -1,41 +1,136 @@
-# Ignore node modules
-/webApp/node_modules/
-
-# Vite build output
-/webApp/dist/
-
-# Logs
+# =========================
+# GLOBAL IGNORE
+# =========================
 *.log
-
-# System files
-.DS_Store
+*.tmp
+*.temp
+*.swp
+*.swo
+*.DS_Store
 Thumbs.db
+*.bak
 
-# Environment files
-.env
-.env.local
+# =========================
+# NODE / JAVASCRIPT / REACT
+# =========================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+dist/
+build/
+.cache/
+.eslintcache
+.vscode-test/
+.next/
+out/
+coverage/
+*.env
+*.env.local
+*.env.*.local
 
-# VS Code settings (optional)
-.vscode/
+# React Vite
+.vite/
 
-# IDE files (JetBrains, Eclipse, etc.)
-.idea/
+# =========================
+# PYTHON
+# =========================
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+ENV/
+venv.bak/
 
-# npm lock file (optional if using yarn)
-/webApp/yarn.lock
+# Raspberry Pi Python virtual envs
+pi_env/
+*raspi*/env/
 
-# Arduino build files
-*.elf
-*.hex
-*.bin
-*.map
-*.eep
-*.d
+# pip cache
+pip-wheel-metadata/
+pip-selfcheck.json
+
+# Jupyter
+.ipynb_checkpoints/
+
+# =========================
+# C++ / Build Files
+# =========================
 *.o
+*.out
+*.obj
+*.exe
+*.dll
+*.so
+*.a
+*.dSYM/
+cmake-build-*/
+build/
+bin/
+lib/
 
-# Misc
-webApp/.parcel-cache/
-
-#dump files
+# =========================
+# Raspberry Pi / Linux
+# =========================
+*.pid
+*.lock
 *.dmp
-*.rdb
+*.elf
+*.bin
+*.hex
+
+# MQTT / Redis / DB dumps
+dump.rdb
+
+# =========================
+# EDITORS
+# =========================
+
+# VSCode
+.vscode/
+.history/
+
+# JetBrains
+.idea/
+*.iml
+
+# =========================
+# OS FILES
+# =========================
+# Windows
+desktop.ini
+
+# Mac
+.AppleDouble
+.LSOverride
+
+# =========================
+# BACKEND / SERVER-SPECIFIC
+# =========================
+logs/
+uploads/
+temp/
+cache/
+
+# Ignore secrets
+*.pem
+*.key
+*.crt
+secret.*
+credentials.json
+firebase-key.json
+
+# =========================
+# OPTIONAL MONOREPO EXCLUSIONS
+# =========================
+# Remove backup zip folders
+*.zip
+*.tar
+*.gz
+
+# If you have compiled RPi binaries:
+rpi-code/build/
