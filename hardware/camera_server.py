@@ -30,7 +30,7 @@ class CameraController:
         try:
             # Build command based on settings
             cmd = [
-                "libcamera-jpeg",
+                "rpicam-jpeg",
                 "-o",
                 filename,
                 "--width",
@@ -126,7 +126,7 @@ class CameraController:
         """Check camera status and current settings"""
         try:
             test_result = subprocess.run(
-                ["libcamera-hello", "--list-cameras"],
+                ["rpicam-hello", "--list-cameras"],
                 capture_output=True,
                 text=True,
                 timeout=5,
@@ -166,7 +166,7 @@ class CameraController:
 
             # Use high quality settings for single capture
             cmd = [
-                "libcamera-jpeg",
+                "rpicam-jpeg",
                 "-o",
                 filename,
                 "--width",

@@ -32,7 +32,7 @@ class SurveillanceRobot:
         self.pid = PID(Kp=0.5, Ki=0.1, Kd=0.02, setpoint=0, output_limits=(-50, 50))
 
         # Robot state
-        self.command = "stop"
+        self.command = ""
         self.target_speed = 0
 
         # Setup signal handlers for graceful shutdown
@@ -135,7 +135,6 @@ class SurveillanceRobot:
 
                 # Update RPM and other periodic calculations
                 self._update_rpm()
-
                 # Handle movement commands
                 if self.command == "forward":
                     left_ticks = self.motors.encoder_left.get_ticks()

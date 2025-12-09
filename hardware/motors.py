@@ -156,6 +156,6 @@ class MotorController:
 
     def stop(self):
         """Stop both motors"""
-        print("🛑 Stopping motors")
+        # print("🛑 Stopping motors")
         self.current_movement = "stopped"
         self._set_motors(0, 0)
