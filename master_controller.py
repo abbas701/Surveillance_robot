@@ -150,8 +150,8 @@ class SurveillanceRobot:
                     right_ticks = self.motors.encoder_right.get_ticks()
                     error = left_ticks - right_ticks
                     correction = self.pid(error)
-                    left_speed = -self.target_speed - correction
-                    right_speed = -self.target_speed + correction
+                    left_speed = -self.target_speed + correction
+                    right_speed = -self.target_speed - correction
                     self.motors._set_motors(left_speed, right_speed)
 
                 elif self.command == "left":
