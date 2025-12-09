@@ -1,5 +1,17 @@
 # Ignore node modules
 /webApp/node_modules/
+node_modules/
+
+# Python virtual environment
+venv/
+env/
+.venv/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
 
 # Vite build output
 /webApp/dist/
