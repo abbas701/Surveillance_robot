@@ -14,6 +14,18 @@ export async function cacheSensorData(data) {
     }
 }
 
+// Store network data for dashboard
+export async function cacheNetworkData(data) {
+    try {
+        const key = `network:latest`;
+        await redisClient.set(key, JSON.stringify(data));
+        await redisClient.expire(key, config.redisExpiryInterval);
+        console.log('Cached network data in Redis');
+    } catch (error) {
+        console.error('Redis network cache error:', error);
+    }
+}
+
 // Fetch all sensor data from Redis
 export async function fetchSensorData() {
     try {
@@ -49,8 +61,28 @@ export async function fetchLatestSensorData() {
     }
 }
 
+// Fetch latest network data
+export async function fetchNetworkData() {
+    try {
+        const key = `network:latest`;
+        const data = await redisClient.get(key);
+        
+        if (data) {
+            const parsedData = JSON.parse(data);
+            console.log('Fetched network data from Redis');
+            return parsedData;
+        }
+        return null;
+    } catch (error) {
+        console.error('Redis fetch network error:', error);
+        return null;
+    }
+}
+
 export default {
     cacheSensorData,
     fetchSensorData,
-    fetchLatestSensorData
+    fetchLatestSensorData,
+    cacheNetworkData,
+    fetchNetworkData
 };

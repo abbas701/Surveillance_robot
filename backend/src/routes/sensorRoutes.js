@@ -1,5 +1,5 @@
 import express from 'express';
-import { fetchSensorData, fetchLatestSensorData } from '../services/redisService.js';
+import { fetchSensorData, fetchLatestSensorData, fetchNetworkData } from '../services/redisService.js';
 
 const router = express.Router();
 
@@ -46,6 +46,33 @@ router.get('/data/latest', async (req, res) => {
         res.status(500).json({
             success: false,
             error: 'Failed to fetch latest sensor data',
+            message: error.message
+        });
+    }
+});
+
+// API endpoint to get network data
+router.get('/network', async (req, res) => {
+    try {
+        const networkData = await fetchNetworkData();
+
+        if (networkData) {
+            res.json({
+                success: true,
+                data: networkData,
+                timestamp: new Date().toISOString()
+            });
+        } else {
+            res.status(404).json({
+                success: false,
+                error: 'No network data available'
+            });
+        }
+    } catch (error) {
+        console.error('API Error fetching network data:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to fetch network data',
             message: error.message
         });
     }

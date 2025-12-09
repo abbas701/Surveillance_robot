@@ -1,6 +1,6 @@
 import mqtt from 'mqtt';
 import { config } from '../config/env.js';
-import { cacheSensorData, postgresBatchWrite } from '../services/index.js';
+import { cacheSensorData, cacheNetworkData, postgresBatchWrite } from '../services/index.js';
 import { pool } from '../config/db.js';
 
 const mqttTopics = {
@@ -8,7 +8,8 @@ const mqttTopics = {
     locomotion: 'robot/locomotion',
     calibration: 'robot/calibration',
     calibrationFeedback: 'robot/calibration/feedback',
-    status: 'robot/status'
+    status: 'robot/status',
+    network: 'robot/network'
 };
 
 let mqttClient = null;
@@ -62,6 +63,13 @@ export function initializeMqtt() {
                     [status, quantity, value || null, error || null]
                 );
                 console.log('Calibration feedback stored in database');
+            
+            } else if (topic === mqttTopics.network) {
+                const data = JSON.parse(message.toString());
+                // Store in Redis for real-time dashboard
+                await cacheNetworkData(data);
+                console.log('Stored network data in Redis:', data);
+            
             } else {
                 console.log(`Unknown topic: ${topic}`);
             }
