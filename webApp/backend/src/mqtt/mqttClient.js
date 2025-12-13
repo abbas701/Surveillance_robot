@@ -8,7 +8,9 @@ const mqttTopics = {
     locomotion: 'robot/locomotion',
     calibration: 'robot/calibration',
     calibrationFeedback: 'robot/calibration/feedback',
-    status: 'robot/status'
+    status: 'robot/status',
+    network: 'robot/network',
+    camera_control: 'robot/camera/control'
 };
 
 let mqttClient = null;
@@ -62,6 +64,11 @@ export function initializeMqtt() {
                     [status, quantity, value || null, error || null]
                 );
                 console.log('Calibration feedback stored in database');
+            } else if (topic === mqttTopics.network) {
+                const networkData = JSON.parse(message.toString());
+                console.log('Network data received:', networkData);
+                // Network data can be cached in Redis for real-time display
+                await cacheSensorData({ network: networkData, timestamp: Date.now() });
             } else {
                 console.log(`Unknown topic: ${topic}`);
             }

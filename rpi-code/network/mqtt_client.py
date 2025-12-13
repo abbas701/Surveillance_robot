@@ -86,6 +86,7 @@ class MQTTClient:
             )
             client.subscribe(self.mqtt_config["topics"]["locomotion"])
             client.subscribe(self.mqtt_config["topics"]["calibration"])
+            client.subscribe(self.mqtt_config["topics"]["camera_control"])
             client.publish(self.mqtt_config["topics"]["status"], "online", retain=True)
             self.is_online = True
             print("MQTT subscriptions set up and status published")
@@ -119,11 +120,27 @@ class MQTTClient:
             elif message.topic == self.mqtt_config["topics"]["calibration"]:
                 self._handle_calibration_command(payload)
 
+            elif message.topic == self.mqtt_config["topics"]["camera_control"]:
+                self._handle_camera_control_command(payload)
+
         except Exception as e:
             print(f"Error processing MQTT message: {e}")
 
     def publish_network_metrics(self, network_data):
-        self.mqtt_client.publish("robot/network", json.dumps(network_data))
+        """Publish network metrics to MQTT"""
+        if not self.mqtt_client.is_connected():
+            print("MQTT not connected, skipping network publish")
+            return
+        
+        try:
+            result = self.mqtt_client.publish(
+                self.mqtt_config["topics"]["network"], 
+                json.dumps(network_data)
+            )
+            result.wait_for_publish(timeout=5)
+            print(f"✓ Published network metrics (msg ID: {result.mid})")
+        except Exception as e:
+            print(f"✗ Failed to publish network metrics: {e}")
 
     def _handle_locomotion_command(self, command):
         """Process locomotion commands by updating robot state."""
@@ -184,6 +201,47 @@ class MQTTClient:
             json.dumps(feedback),
             retain=True,
         )
+
+    def _handle_camera_control_command(self, command):
+        """Process camera control commands"""
+        try:
+            action = command.get("action", "")
+            
+            if action == "move":
+                # Joystick control - x and y values from -100 to +100
+                x_value = command.get("x", 0)
+                y_value = command.get("y", 0)
+                
+                # Convert to angles: x controls pan, y controls tilt
+                # Joystick: x positive = right, y positive = up
+                pan_angle = (x_value / 100.0) * 90  # -90 to +90 degrees
+                tilt_angle = (y_value / 100.0) * 90  # -90 to +90 degrees
+                
+                # Set servo positions
+                self.robot.servos.set_pan(pan_angle)
+                self.robot.servos.set_tilt(tilt_angle)
+                
+                print(f"📹 Camera move: pan={pan_angle:.1f}°, tilt={tilt_angle:.1f}°")
+                
+            elif action == "center":
+                # Center the camera
+                self.robot.servos.center()
+                print("📹 Camera centered")
+                
+            elif action == "pan":
+                # Direct pan control
+                angle = command.get("angle", 0)
+                self.robot.servos.set_pan(angle)
+                print(f"📹 Camera pan: {angle}°")
+                
+            elif action == "tilt":
+                # Direct tilt control
+                angle = command.get("angle", 0)
+                self.robot.servos.set_tilt(angle)
+                print(f"📹 Camera tilt: {angle}°")
+                
+        except Exception as e:
+            print(f"❌ Error handling camera control command: {e}")
 
     def _publish_sensor_data(self, imu_data, env_data, battery_data,encoder_data):
         """Publish sensor data to MQTT"""
