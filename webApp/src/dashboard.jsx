@@ -182,7 +182,7 @@ function Dashboard({ setLoggedIn }) {
 
             {/* Camera Controls */}
             <div className="col-span-12 md:col-span-4 lg:col-span-3 bg-white/10 rounded-2xl shadow-md p-4">
-              <CameraControls mode="manual" onButtonPress={sendCommand} />
+              <CameraControls mode="manual" onButtonPress={sendCommand} theme={theme} />
             </div>
 
             {/* Locomotive Controls */}

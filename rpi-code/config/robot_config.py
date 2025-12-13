@@ -32,6 +32,8 @@ class RobotConfig:
             "calibration_feedback": os.getenv(
                 "MQTT_TOPIC_CALIBRATION_FEEDBACK", "robot/calibration/feedback"
             ),
+            "network": os.getenv("MQTT_TOPIC_NETWORK", "robot/network"),
+            "camera_control": os.getenv("MQTT_TOPIC_CAMERA_CONTROL", "robot/camera/control"),
         },
     }
 
@@ -105,6 +107,10 @@ class RobotConfig:
             "right_pwm": int(os.getenv("MOTOR_RIGHT_PWM", "12")),
             "right_dir1": int(os.getenv("MOTOR_RIGHT_DIR1", "7")),
             "right_dir2": int(os.getenv("MOTOR_RIGHT_DIR2", "8")),
+        },
+        "servos": {
+            "pan": int(os.getenv("SERVO_PAN", "23")),    # GPIO 23 for pan (left/right)
+            "tilt": int(os.getenv("SERVO_TILT", "24")),  # GPIO 24 for tilt (up/down)
         },
         "misc": {
             "horn": int(os.getenv("MISC_HORN", "17")),

@@ -1,6 +1,7 @@
 from config.robot_config import RobotConfig
 from hardware.motors import MotorController
 from hardware.sensors.sensor_module import SensorModule
+from hardware.servos import ServoController
 from network.mqtt_client import MQTTClient
 from network.network_monitor import NetworkMonitor
 from utils.helpers import RobotUtils
@@ -21,6 +22,7 @@ class SurveillanceRobot:
         self.config = RobotConfig()
         self.motors = MotorController(self.pi, self.config)
         self.sensors = SensorModule(self.pi)
+        self.servos = ServoController(self.pi, self.config)
         # Pass the robot instance (self) to the MQTT client
         self.mqtt = MQTTClient(self.pi, self.config, self)
         self.network_monitor = NetworkMonitor()
@@ -103,6 +105,21 @@ class SurveillanceRobot:
         except Exception as e:
             print(f"❌ Error publishing sensor data: {e}")
 
+    def _publish_network_data(self):
+        """Read and publish network metrics"""
+        try:
+            # Get network metrics from network monitor
+            # Use get_wifi_metrics for frequent updates (no speed test)
+            from network.network_monitor import get_wifi_metrics
+            network_data = get_wifi_metrics()
+            
+            # Publish network data via MQTT
+            self.mqtt.publish_network_metrics(network_data)
+            print(f"✓ Published network data")
+
+        except Exception as e:
+            print(f"❌ Error publishing network data: {e}")
+
     def _update_rpm(self):
         """Update RPM calculations using motor controller"""
         self.motors.update_rpm()
@@ -119,6 +136,8 @@ class SurveillanceRobot:
 
         last_publish_time = 0
         publish_interval = 2  # seconds
+        last_network_publish_time = 0
+        network_publish_interval = 10  # seconds - publish network data every 10 seconds
 
         try:
             while True:
@@ -134,21 +153,20 @@ class SurveillanceRobot:
                     x_angle = imu_data.get("tilt", {}).get("roll", 0) if imu_data else 0
 
                     # Get current RPM values (already updated at start of loop)
-                    # RPM values are signed: positive = forward, negative = backward
-                    # Use absolute values for speed comparison
-                    left_rpm = abs(self.motors.rpm.get("left", 0))
-                    right_rpm = abs(self.motors.rpm.get("right", 0))
+                    left_rpm = self.motors.rpm.get("left", 0)
+                    right_rpm = self.motors.rpm.get("right", 0)
 
-                    # Compute PID correction combining RPM difference and x-axis angle
-                    # Positive correction = increase left motor speed, decrease right motor speed
+                    # Compute PID correction using absolute RPM values
+                    # Positive correction means left is faster, need to slow left/speed up right
                     correction = self.pid_controller.compute_correction(
-                        left_rpm, right_rpm, x_angle
+                        abs(left_rpm), abs(right_rpm), x_angle
                     )
 
-                    # Apply correction: positive correction means increase left, decrease right
+                    # Apply correction to keep robot moving straight
                     # Motor convention: forward = left: -speed, right: +speed
-                    left_speed = -self.target_speed - correction
-                    right_speed = self.target_speed + correction
+                    # Positive correction: reduce left magnitude, increase right magnitude
+                    left_speed = -self.target_speed + correction  # More negative = slower left
+                    right_speed = self.target_speed + correction   # More positive = faster right
 
                     # Ensure speeds stay within limits
                     left_speed = max(-100, min(100, left_speed))
@@ -162,19 +180,20 @@ class SurveillanceRobot:
                     x_angle = imu_data.get("tilt", {}).get("roll", 0) if imu_data else 0
 
                     # Get current RPM values (already updated at start of loop)
-                    # Use absolute values for speed comparison
-                    left_rpm = abs(self.motors.rpm.get("left", 0))
-                    right_rpm = abs(self.motors.rpm.get("right", 0))
+                    left_rpm = self.motors.rpm.get("left", 0)
+                    right_rpm = self.motors.rpm.get("right", 0)
 
-                    # Compute PID correction combining RPM difference and x-axis angle
+                    # Compute PID correction using absolute RPM values
+                    # Positive correction means left is faster, need to slow left/speed up right
                     correction = self.pid_controller.compute_correction(
-                        left_rpm, right_rpm, x_angle
+                        abs(left_rpm), abs(right_rpm), x_angle
                     )
 
                     # Apply correction for backward movement
                     # Motor convention: backward = left: +speed, right: -speed
-                    left_speed = self.target_speed + correction
-                    right_speed = -self.target_speed - correction
+                    # Positive correction: reduce left magnitude, increase right magnitude
+                    left_speed = self.target_speed - correction    # Less positive = slower left
+                    right_speed = -self.target_speed - correction  # More negative = faster right
 
                     # Ensure speeds stay within limits
                     left_speed = max(-100, min(100, left_speed))
@@ -184,11 +203,9 @@ class SurveillanceRobot:
 
                 elif self.command == "left":
                     self.motors.rotate_left(self.target_speed)
-                    self.command = "stop"
 
                 elif self.command == "right":
                     self.motors.rotate_right(self.target_speed)
-                    self.command = "stop"
 
                 elif self.command == "stop":
                     self.motors.stop()
@@ -203,6 +220,11 @@ class SurveillanceRobot:
                     self._publish_sensor_data()
                     last_publish_time = current_time
 
+                # Publish network data at regular intervals
+                if current_time - last_network_publish_time >= network_publish_interval:
+                    self._publish_network_data()
+                    last_network_publish_time = current_time
+
                 # Control loop frequency (20Hz)
                 time.sleep(0.05)
 
@@ -214,6 +236,8 @@ class SurveillanceRobot:
         print("🧹 Cleaning up resources...")
         if hasattr(self, "motors"):
             self.motors.stop()
+        if hasattr(self, "servos"):
+            self.servos.cleanup()
         if hasattr(self, "mqtt"):
             self.mqtt.disconnect()
         if hasattr(self, "pi"):
