@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect } from "react";
 
-function CameraJoystick({ onMove, onEnd, mqttClient }) {
+function CameraJoystick({ onMove, onEnd }) {
     const joystickRef = useRef(null);
     const [isDragging, setIsDragging] = useState(false);
     const [position, setPosition] = useState({ x: 0, y: 0 });
@@ -19,15 +19,6 @@ function CameraJoystick({ onMove, onEnd, mqttClient }) {
     const handleTouchEnd = () => {
         setIsDragging(false);
         setPosition({ x: 0, y: 0 });
-        
-        // Send center command when joystick is released
-        if (mqttClient && mqttClient.connected) {
-            mqttClient.publish("robot/camera/control", JSON.stringify({
-                action: "move",
-                x: 0,
-                y: 0
-            }));
-        }
         
         if (onEnd) onEnd();
     };
@@ -53,19 +44,6 @@ function CameraJoystick({ onMove, onEnd, mqttClient }) {
         const boundedY = Math.sin(angle) * distance;
 
         setPosition({ x: boundedX, y: boundedY });
-
-        // Send camera control commands via MQTT
-        if (mqttClient && mqttClient.connected) {
-            // Convert position to -100 to +100 range
-            const xValue = (boundedX / centerX) * 100;
-            const yValue = -(boundedY / centerY) * 100; // Invert Y for intuitive control (up is positive)
-            
-            mqttClient.publish("robot/camera/control", JSON.stringify({
-                action: "move",
-                x: xValue,
-                y: yValue
-            }));
-        }
 
         if (onMove) {
             onMove({

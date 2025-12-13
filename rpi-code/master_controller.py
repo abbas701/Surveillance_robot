@@ -156,17 +156,17 @@ class SurveillanceRobot:
                     left_rpm = self.motors.rpm.get("left", 0)
                     right_rpm = self.motors.rpm.get("right", 0)
 
-                    # Compute PID correction combining RPM difference and x-axis angle
-                    # Positive correction = right motor is slower, needs to speed up
+                    # Compute PID correction using absolute RPM values
+                    # Positive correction means left is faster, need to slow left/speed up right
                     correction = self.pid_controller.compute_correction(
                         abs(left_rpm), abs(right_rpm), x_angle
                     )
 
                     # Apply correction to keep robot moving straight
                     # Motor convention: forward = left: -speed, right: +speed
-                    # If left is faster (correction > 0), reduce left speed
-                    left_speed = -self.target_speed + correction
-                    right_speed = self.target_speed + correction
+                    # Positive correction: reduce left magnitude, increase right magnitude
+                    left_speed = -self.target_speed + correction  # More negative = slower left
+                    right_speed = self.target_speed + correction   # More positive = faster right
 
                     # Ensure speeds stay within limits
                     left_speed = max(-100, min(100, left_speed))
@@ -183,16 +183,17 @@ class SurveillanceRobot:
                     left_rpm = self.motors.rpm.get("left", 0)
                     right_rpm = self.motors.rpm.get("right", 0)
 
-                    # Compute PID correction combining RPM difference and x-axis angle
+                    # Compute PID correction using absolute RPM values
+                    # Positive correction means left is faster, need to slow left/speed up right
                     correction = self.pid_controller.compute_correction(
                         abs(left_rpm), abs(right_rpm), x_angle
                     )
 
                     # Apply correction for backward movement
                     # Motor convention: backward = left: +speed, right: -speed
-                    # If left is faster (correction > 0), reduce left speed
-                    left_speed = self.target_speed - correction
-                    right_speed = -self.target_speed - correction
+                    # Positive correction: reduce left magnitude, increase right magnitude
+                    left_speed = self.target_speed - correction    # Less positive = slower left
+                    right_speed = -self.target_speed - correction  # More negative = faster right
 
                     # Ensure speeds stay within limits
                     left_speed = max(-100, min(100, left_speed))
